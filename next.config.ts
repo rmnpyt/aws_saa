@@ -1,10 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  experimental: {
-    // Enable for better performance
-  },
 }
 
 export default nextConfig

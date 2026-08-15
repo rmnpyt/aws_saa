@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    image: aws-saa-study:latest
+    expose:
+      - "3000"
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.aws-saa.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)
+      - traefik.http.routers.aws-saa.entrypoints=websecure
+      - traefik.http.routers.aws-saa.tls.certresolver=letsencrypt
+      - traefik.http.services.aws-saa.loadbalancer.server.port=3000
+
+networks:
+  proxy:
+    external: true

@@ -8,7 +8,7 @@ out/
 # Production build
 build/
 
-# Environment variables
+# Environment variables (keep .env.example committed)
 .env
 .env.local
 .env.development.local
