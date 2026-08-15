@@ -1,0 +1,144 @@
+---
+title: "Decoupling: SQS & SNS"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "decoupling-sqs-sns"
+order: 5
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 50
+difficulty: "intermediate"
+tags: ["sqs", "sns", "messaging", "decoupling", "queuing", "pub-sub"]
+services: ["Amazon SQS", "Amazon SNS"]
+---
+
+## Why Decoupling?
+
+When services communicate directly (synchronously), a failure in one service causes failures in all services that depend on it:
+
+```
+Web → App → Database
+        ↑ If the database slows down, the app slows down, and the web tier suffers
+```
+
+**Decoupling** separates services with a message intermediary so failures don't propagate:
+
+```
+Web → SQS Queue → App (processes at its own pace)
+```
+
+## Amazon SQS (Simple Queue Service)
+
+**SQS** is a fully managed **message queue** service. Messages are placed in a queue by producers and consumed by consumers.
+
+### Queue Types
+
+| Feature | Standard Queue | FIFO Queue |
+|---|---|---|
+| **Order** | Best-effort ordering (not guaranteed) | Exactly-preserved order (first in, first out) |
+| **Delivery** | At-least-once (duplicates possible) | Exactly-once processing |
+| **Throughput** | Unlimited | 3,000 msg/sec with batching, 300 without |
+| **Use case** | When order doesn't matter and duplicates are OK | Financial transactions, order processing |
+
+<ExamTip>
+**FIFO queue is for order-sensitive workloads.** Standard queue is for everything else — it has effectively unlimited throughput. For the exam: "must process in order" or "no duplicate processing" → FIFO.
+</ExamTip>
+
+### Key SQS Concepts
+
+**Visibility Timeout**: When a consumer reads a message, the message is hidden from other consumers for the visibility timeout period. If the consumer successfully processes it, they delete it. If they fail, the message becomes visible again after the timeout.
+- Default: 30 seconds. Max: 12 hours.
+- Set it longer than your processing time!
+
+**Message Retention**: Messages stay in the queue from 1 minute to 14 days (default 4 days).
+
+**Long Polling**: Instead of checking the queue constantly (short polling), long polling waits up to 20 seconds for a message to arrive. Reduces API calls and cost. **Always enable long polling.**
+
+**Dead Letter Queue (DLQ)**: Messages that fail to process after a defined number of attempts (maxReceiveCount) are moved to a DLQ for troubleshooting. Prevents poison-pill messages from blocking the queue forever.
+
+**Message size**: Up to 256 KB. For larger payloads, store data in S3 and put the S3 pointer in the message.
+
+**Delay Queue**: Delay delivery of new messages by 0-900 seconds. Useful for scheduling future processing.
+
+### SQS as a Buffer (Common Pattern)
+
+```
+Web Servers (producers) 
+        ↓  (write image URLs to SQS)
+SQS Queue
+        ↓  (workers pull and process at their own rate)
+EC2 Workers (consumers — Auto Scaling based on queue depth)
+        ↓
+S3 (processed images)
+```
+
+The queue absorbs traffic spikes — the web tier never slows down waiting for image processing.
+
+## Amazon SNS (Simple Notification Service)
+
+**SNS** is a **pub/sub (publish/subscribe)** messaging service. Publishers send messages to a **Topic**, and all subscribers receive a copy.
+
+### Subscriptions (Supported Protocols)
+
+A topic can fan out to multiple subscribers:
+- **SQS queues** (most common — fan-out pattern)
+- **Lambda functions**
+- **HTTP/HTTPS endpoints**
+- **Email addresses**
+- **SMS messages**
+- **Amazon Kinesis Data Firehose**
+- **Mobile push notifications** (APNs, FCM)
+
+### SNS Fan-out Pattern
+
+The classic pattern: SNS + multiple SQS queues:
+
+```
+S3 Event (new order placed)
+    ↓
+SNS Topic "new-orders"
+    ├── SQS Queue → Inventory Service (update stock)
+    ├── SQS Queue → Shipping Service (prepare shipment)
+    ├── SQS Queue → Analytics Service (record metrics)
+    └── Lambda → Email Service (send confirmation)
+```
+
+This ensures all services get a copy of the message independently, and each can process at its own pace.
+
+<KeyConcept title="SNS + SQS Fan-out">
+SNS alone doesn't persist messages — if a subscriber is down, the message is lost. Combining SNS with SQS gives you fan-out (SNS) + durability and retry (SQS). This is the most common pattern on the exam.
+</KeyConcept>
+
+### SNS Message Filtering
+
+Subscribers can set a **filter policy** to receive only a subset of messages:
+
+```json
+{"orderType": ["premium", "standard"]}  // Only receive orders of these types
+```
+
+Without filtering, all subscribers receive all messages.
+
+### SNS FIFO Topics
+
+Like SQS FIFO, SNS FIFO topics preserve message order and exactly-once delivery. Can only fan out to SQS FIFO queues.
+
+## SQS vs. SNS vs. EventBridge
+
+| Feature | SQS | SNS | EventBridge |
+|---|---|---|---|
+| Pattern | Queue (pull-based) | Pub/sub (push-based) | Event bus (push-based) |
+| Consumers | One consumer group | Many subscribers | Many rules/targets |
+| Persistence | Yes (up to 14 days) | No (fire and forget) | No |
+| Filtering | No (unless FIFO) | Yes (filter policies) | Yes (advanced pattern matching) |
+| External events | No | No | Yes (100+ AWS services, SaaS) |
+| Best for | Work queue, buffer | Fan-out to multiple targets | Complex event routing, AWS events |
+
+## Summary
+
+- **SQS**: Queue service. Producers write, consumers pull. Absorbs traffic spikes. DLQ for failed messages.
+- **Standard queue**: At-least-once delivery, best-effort order, unlimited throughput.
+- **FIFO queue**: Exactly-once, guaranteed order, 3,000 msg/sec max.
+- **SNS**: Topic. One-to-many pub/sub. Push to SQS, Lambda, email, SMS, HTTPS.
+- **Fan-out pattern**: SNS topic → multiple SQS queues = each service gets its own copy, with durability.
+- Long polling, DLQ, and appropriate visibility timeout are key SQS best practices.

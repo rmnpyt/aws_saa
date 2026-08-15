@@ -1,0 +1,101 @@
+---
+title: "IAM Identity Center & SSO"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "iam-identity-center"
+order: 9
+domain: 1
+taskStatements: ["1.1"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["iam-identity-center", "sso", "federation", "okta", "active-directory"]
+services: ["AWS IAM Identity Center", "AWS Directory Service"]
+---
+
+## The Multi-Account Access Problem
+
+As your AWS environment grows, you have dozens of accounts and hundreds of users. Without a centralized solution, each user needs an IAM user in every account they access — impossible to manage at scale.
+
+**IAM Identity Center** (formerly AWS SSO) solves this with centralized, federated access management.
+
+## What is IAM Identity Center?
+
+**IAM Identity Center** is a service that provides single sign-on (SSO) access to multiple AWS accounts and applications through one central portal.
+
+**Key capabilities:**
+- Single set of credentials → access all authorized AWS accounts
+- Integrates with external identity providers (Okta, Azure AD, Active Directory)
+- Built-in user portal at a unique URL (e.g., `d-xxxxxxxxxx.awsapps.com/start`)
+- Granular **permission sets** define what users can do in each account
+- Temporary credentials — no long-term IAM user passwords per account
+
+## How It Works
+
+```
+User → Identity Center Portal
+    → Authenticates (with IdP or Identity Center's own directory)
+    → Selects an account and permission set
+    → Identity Center calls STS to generate temporary credentials
+    → User accesses that account with those credentials
+```
+
+## Permission Sets
+
+A **permission set** is like an IAM role template that Identity Center deploys as an actual IAM role in each AWS account:
+
+- Define once in Identity Center
+- Assign to specific accounts and users/groups
+- Identity Center automatically creates the IAM role in the member accounts
+
+**Example permission sets:**
+- `AdministratorAccess` — full access for senior engineers
+- `ReadOnlyAccess` — for auditors
+- `DeveloperAccess` — custom policy for developers (no IAM, limited EC2)
+
+## Identity Sources
+
+Identity Center can use three sources for user identities:
+
+| Source | Description |
+|---|---|
+| **Identity Center directory** | Built-in user directory. Manage users directly in IAM Identity Center. |
+| **AWS Managed Microsoft AD** | Connect to a Microsoft Active Directory in AWS. |
+| **External IdP (SAML 2.0)** | Connect to Okta, Azure AD, Ping Identity, etc. Users authenticate with their existing corporate credentials. |
+
+## ABAC (Attribute-Based Access Control)
+
+Identity Center supports **ABAC** — using attributes (tags) on users to control access:
+
+```
+User attribute: Department=Finance
+IAM policy condition: 
+  StringEquals: "aws:PrincipalTag/Department": "Finance"
+```
+
+This means you can write one permission set that automatically grants access to resources tagged with the matching department — scaling access control without writing hundreds of policies.
+
+<ExamTip>
+IAM Identity Center is the AWS-recommended way for **humans** to access AWS accounts (especially in multi-account setups). It replaces the old pattern of creating IAM users in every account. When you see "SSO" or "federated access to multiple accounts" in a question, think Identity Center.
+</ExamTip>
+
+## AWS Directory Service
+
+**Directory Service** provides Microsoft Active Directory (AD) as a managed service on AWS. Types:
+
+| Type | Description |
+|---|---|
+| **AWS Managed Microsoft AD** | Full-featured AD in AWS. Works with Identity Center, RDS SQL Server, WorkSpaces, SSO. |
+| **AD Connector** | Proxy redirects AD authentication to your on-premises AD. No data cached in AWS. |
+| **Simple AD** | Lightweight standalone directory based on Samba. For small workloads. |
+
+**AD Connector** is the right choice when:
+- You must keep all authentication data on-premises (compliance)
+- You just need to proxy AWS auth requests to your existing on-premises AD
+
+## Summary
+
+- **IAM Identity Center** = centralized SSO for AWS accounts. One login → all authorized accounts.
+- **Permission sets** = IAM role templates deployed across accounts
+- **Identity sources**: Identity Center's own directory, AWS Managed AD, external SAML 2.0 IdP (Okta, Azure AD)
+- Preferred over creating IAM users in every account
+- **AWS Managed Microsoft AD** = full AD in AWS. **AD Connector** = proxy to on-premises AD.

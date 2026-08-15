@@ -1,0 +1,133 @@
+---
+title: "Multi-Account Security Strategy"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "multi-account-strategy"
+order: 2
+domain: 1
+taskStatements: ["1.1"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["organizations", "control-tower", "scp", "multi-account", "security"]
+services: ["AWS Organizations", "AWS Control Tower"]
+---
+
+## Why Multiple AWS Accounts?
+
+A single AWS account is NOT the recommended architecture for organizations. Multiple accounts provide:
+
+- **Security isolation** — A compromise in one account doesn't affect others
+- **Billing separation** — Easy cost attribution by team/product/environment
+- **Service limit isolation** — Limits in one account don't affect others
+- **Compliance** — Separate workloads with different compliance requirements
+
+The standard pattern is at minimum:
+- Development account(s)
+- Staging/testing account(s)
+- Production account(s)
+- Shared services account (logging, security tooling)
+
+## AWS Organizations
+
+**AWS Organizations** provides centralized management across multiple AWS accounts.
+
+**Key components:**
+
+| Component | Description |
+|---|---|
+| **Management account** | The root account that created the Organization. Pays for all accounts. Never run workloads here. |
+| **Member accounts** | Individual AWS accounts in the org. Can be created by the management account or invited. |
+| **Organizational Unit (OU)** | A container for accounts — like a folder. OUs can be nested. |
+| **Root** | The top-level container for the entire organization |
+| **SCP** | Service Control Policy — governs maximum permissions for accounts/OUs |
+
+## Service Control Policies (SCPs)
+
+**SCPs** are policy documents (same JSON format as IAM policies) that set the **maximum permissions** any account within an OU or the entire organization can have, regardless of what IAM policies say.
+
+**Critical facts:**
+- SCPs do NOT grant permissions — they only restrict
+- They apply to all IAM entities (users and roles) in the account, including account root
+- They do NOT apply to the management account
+- IAM policies AND SCPs must both allow an action for it to succeed (in member accounts)
+
+**Example SCP: Deny creating resources outside us-east-1**
+```json
+{
+  "Effect": "Deny",
+  "Action": "*",
+  "Resource": "*",
+  "Condition": {
+    "StringNotEquals": {
+      "aws:RequestedRegion": "us-east-1"
+    }
+  }
+}
+```
+
+**Common SCP use cases:**
+- Restrict to specific AWS Regions
+- Prevent root user actions in member accounts
+- Deny deletion of CloudTrail logs
+- Prevent disabling GuardDuty
+- Require EC2 instances to use specific instance types
+
+<ExamTip>
+SCPs affect ALL principals in the account including the root user of member accounts. The one exception is the management account — SCPs don't apply to the management/payer account. This is a common trap question.
+</ExamTip>
+
+## AWS Control Tower
+
+**AWS Control Tower** is a higher-level service that sets up and governs a multi-account AWS environment following AWS best practices. It is built on top of AWS Organizations, Service Catalog, and other services.
+
+**What Control Tower provides:**
+- Automated account factory (provision new accounts from a template)
+- Pre-configured guardrails (preventive + detective controls)
+- A landing zone (pre-built OU structure)
+- Centralized dashboard showing compliance status
+
+**Guardrails** are pre-built rules:
+- **Preventive guardrails** — Implemented as SCPs (deny certain actions)
+- **Detective guardrails** — Implemented as AWS Config rules (alert when something is wrong)
+
+**Mandatory guardrails** — Always enabled. E.g., "Disallow changes to CloudTrail"
+**Strongly recommended guardrails** — Best practices. E.g., "Enable MFA for root"
+**Elective guardrails** — Optional. E.g., "Disallow changes to replication configuration for Amazon S3"
+
+## Example Multi-Account Structure
+
+```
+Root
+└── Management Account
+    ├── Security OU
+    │   ├── Log Archive Account (all CloudTrail logs centralized here)
+    │   └── Security Tooling Account (GuardDuty, SecurityHub)
+    ├── Infrastructure OU
+    │   ├── Network Account (Transit Gateway, VPCs)
+    │   └── Shared Services Account (AD, DNS)
+    ├── Production OU
+    │   ├── Production App Account
+    │   └── Production Data Account
+    └── Workloads OU
+        └── Development Account
+```
+
+**SCP example for Production OU:** Deny deletion of production resources, deny changes outside approved Regions.
+
+## Benefits of Organizations
+
+| Feature | Benefit |
+|---|---|
+| **Consolidated billing** | Single invoice for all accounts, volume discounts, Reserved Instance sharing |
+| **SCPs** | Preventive guardrails — enforce security and compliance across all accounts |
+| **Resource sharing** | AWS RAM (Resource Access Manager) — share subnets, Route 53 resolver rules |
+| **AWS Config aggregator** | Compliance view across all accounts |
+| **AWS Security Hub** | Centralized security findings across accounts |
+
+## Summary
+
+- Multiple accounts = isolation + billing clarity + compliance boundaries
+- **AWS Organizations** = centralized management, consolidated billing, SCPs
+- **SCPs** = deny-based guardrails that restrict maximum permissions for all IAM entities in accounts (NOT the management account)
+- **AWS Control Tower** = automated landing zone + guardrails + account factory on top of Organizations
+- A solid OU structure: Security OU, Infrastructure OU, Production OU, Workloads OU

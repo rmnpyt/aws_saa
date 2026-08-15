@@ -1,0 +1,486 @@
+[
+  {
+    "id": "fnd001",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company is considering migrating from an on-premises data center to AWS. Which AWS cloud computing benefit allows them to avoid the upfront cost of purchasing servers?",
+    "options": [
+      {"id": "A", "text": "High availability"},
+      {"id": "B", "text": "Trade capital expense for operational expense"},
+      {"id": "C", "text": "Economies of scale"},
+      {"id": "D", "text": "Elasticity"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "AWS lets you pay only for what you consume (operational expense / OpEx) instead of buying servers upfront (capital expense / CapEx). This eliminates large upfront investments and shifts costs to a pay-as-you-go model.",
+      "perOption": {
+        "A": "High availability refers to keeping systems running despite failures. It's a benefit but not the one that eliminates upfront server costs.",
+        "B": "CORRECT. Trading CapEx for OpEx is one of the 6 advantages of cloud computing. No need to buy hardware upfront — pay monthly for what you use.",
+        "C": "Economies of scale means AWS aggregates usage from thousands of customers to achieve lower per-unit costs. A benefit but not the direct answer to eliminating upfront server costs.",
+        "D": "Elasticity is the ability to scale resources up or down on demand. A benefit but not specifically about eliminating upfront costs."
+      }
+    }
+  },
+  {
+    "id": "fnd002",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "An organization wants to deploy applications in multiple AWS locations to reduce latency for users worldwide. What is the correct term for each physical location where AWS has data centers?",
+    "options": [
+      {"id": "A", "text": "Availability Zone"},
+      {"id": "B", "text": "Region"},
+      {"id": "C", "text": "Edge Location"},
+      {"id": "D", "text": "Local Zone"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "An AWS Region is a geographic area (like us-east-1 in Northern Virginia, or eu-west-1 in Ireland). Each Region contains multiple Availability Zones. You choose a Region to deploy resources in order to be close to your users.",
+      "perOption": {
+        "A": "An Availability Zone (AZ) is a discrete data center within a Region, not the geographic area itself. There are usually 3+ AZs per Region.",
+        "B": "CORRECT. AWS Regions are geographic locations worldwide (currently 30+). You select a Region to deploy resources, which reduces latency for users in that area.",
+        "C": "Edge Locations are CloudFront CDN points of presence used to cache content closer to users. They are not full data center deployments for EC2/RDS.",
+        "D": "Local Zones are extensions of a Region placed in metropolitan areas for ultra-low latency, but they are a subset of a Region, not the Region itself."
+      }
+    }
+  },
+  {
+    "id": "fnd003",
+    "domain": 0,
+    "taskStatement": "0.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "Under the AWS Shared Responsibility Model, which of the following is the customer's responsibility?",
+    "options": [
+      {"id": "A", "text": "Physical security of data centers"},
+      {"id": "B", "text": "Patching the hypervisor"},
+      {"id": "C", "text": "Configuring security groups on EC2 instances"},
+      {"id": "D", "text": "Replacing failed hardware"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "The Shared Responsibility Model divides security duties: AWS is responsible for security OF the cloud (hardware, infrastructure, hypervisor), while the customer is responsible for security IN the cloud (OS patches, firewall rules, data encryption, identity management). Security group configuration is a customer responsibility.",
+      "perOption": {
+        "A": "Physical data center security is AWS's responsibility — customers never have physical access to AWS data centers.",
+        "B": "The hypervisor (which manages virtual machines) is part of AWS's infrastructure layer — AWS's responsibility.",
+        "C": "CORRECT. Security groups, NACLs, OS patching, application configuration, IAM users, encryption of data — all are customer responsibilities.",
+        "D": "Hardware replacement (failed disks, failed servers) is AWS's responsibility as part of managing the physical infrastructure."
+      }
+    }
+  },
+  {
+    "id": "fnd004",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A developer needs to access AWS services programmatically from a script. Which method should they use to authenticate?",
+    "options": [
+      {"id": "A", "text": "Their IAM username and password"},
+      {"id": "B", "text": "AWS Access Key ID and Secret Access Key"},
+      {"id": "C", "text": "Their AWS Management Console URL"},
+      {"id": "D", "text": "Their root account email and password"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Programmatic access to AWS (via CLI, SDK, or API calls) requires an AWS Access Key ID and Secret Access Key. These are generated in IAM for a user or role, not the console password.",
+      "perOption": {
+        "A": "IAM usernames and passwords are for console (browser) access only. They cannot be used for API calls.",
+        "B": "CORRECT. Access keys (Access Key ID + Secret Access Key) are the credentials for programmatic access. They are used by the AWS CLI, SDKs, and direct API calls.",
+        "C": "The Console URL is for browser-based access, not programmatic/API access.",
+        "D": "Root account credentials should never be used for programmatic access. Root has unrestricted access and using its credentials in scripts is a critical security risk."
+      }
+    }
+  },
+  {
+    "id": "fnd005",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "Which AWS service provides a virtual network environment that is logically isolated from other AWS customers' networks?",
+    "options": [
+      {"id": "A", "text": "AWS Direct Connect"},
+      {"id": "B", "text": "Amazon VPC (Virtual Private Cloud)"},
+      {"id": "C", "text": "AWS Transit Gateway"},
+      {"id": "D", "text": "Amazon CloudFront"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon VPC lets you provision a logically isolated section of the AWS Cloud where you can launch AWS resources in a virtual network you define, with full control over IP ranges, subnets, route tables, and gateways.",
+      "perOption": {
+        "A": "AWS Direct Connect is a physical, dedicated network connection from your on-premises data center to AWS. It's a network link, not an isolated virtual network.",
+        "B": "CORRECT. VPC creates your own isolated private network in AWS. You control IP ranges (CIDR), subnets, routing, and security rules.",
+        "C": "Transit Gateway connects multiple VPCs and on-premises networks through a central hub. It routes between networks but is not the isolated network itself.",
+        "D": "CloudFront is a Content Delivery Network (CDN) for distributing content globally. Not a virtual private network."
+      }
+    }
+  },
+  {
+    "id": "fnd006",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A startup is designing their AWS architecture. They want to ensure their application is fault-tolerant. Which design principle best achieves this?",
+    "options": [
+      {"id": "A", "text": "Deploy everything in a single large EC2 instance"},
+      {"id": "B", "text": "Use a single Availability Zone for lowest latency"},
+      {"id": "C", "text": "Distribute resources across multiple Availability Zones"},
+      {"id": "D", "text": "Use Reserved Instances for all workloads"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "Distributing resources across multiple Availability Zones ensures that if one AZ experiences an outage (power, cooling, networking), the application continues to run from the other AZs. This is the core pattern for fault tolerance in AWS.",
+      "perOption": {
+        "A": "A single large instance is a single point of failure. If it fails, the application is down. This is the anti-pattern for fault tolerance.",
+        "B": "A single AZ is faster for intra-AZ communication but creates a single point of failure at the AZ level.",
+        "C": "CORRECT. Multi-AZ deployment is the fundamental AWS resilience pattern. AZs in the same Region are physically separate but connected with low-latency links.",
+        "D": "Reserved Instances are a pricing model, not an architecture pattern. They don't improve fault tolerance."
+      }
+    }
+  },
+  {
+    "id": "fnd007",
+    "domain": 0,
+    "taskStatement": "0.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company is deploying an Amazon EC2 instance to run a web server. Under the Shared Responsibility Model, which tasks does AWS handle? (Choose all that apply — select the best single answer.)",
+    "options": [
+      {"id": "A", "text": "Installing and configuring the web server software"},
+      {"id": "B", "text": "Patching the underlying host hardware and hypervisor"},
+      {"id": "C", "text": "Managing the operating system on the EC2 instance"},
+      {"id": "D", "text": "Configuring the application firewall rules"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "For EC2 (an IaaS service), AWS manages the physical hardware, the network, and the hypervisor. The customer manages the OS, software installed on the OS, network configuration (security groups), and application-level security.",
+      "perOption": {
+        "A": "Installing and configuring the web server (Apache, Nginx, etc.) is the customer's responsibility — they chose the OS and software.",
+        "B": "CORRECT. AWS is responsible for the physical host hardware maintenance, firmware updates, and hypervisor patching. The customer never touches this layer.",
+        "C": "For EC2, the guest OS (like Amazon Linux, Windows Server) is the customer's responsibility — they must patch it, configure it, and secure it.",
+        "D": "Security group rules (the virtual firewall for EC2) are configured by the customer. AWS provides the security group mechanism; the customer defines the rules."
+      }
+    }
+  },
+  {
+    "id": "fnd008",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "An EC2 instance in a private subnet needs to make outbound API calls to the internet (e.g., to a third-party payment processor). The EC2 instance should NOT be directly reachable from the internet. What component enables this?",
+    "options": [
+      {"id": "A", "text": "Internet Gateway attached to the private subnet"},
+      {"id": "B", "text": "NAT Gateway in a public subnet with a route from the private subnet"},
+      {"id": "C", "text": "VPC Peering connection"},
+      {"id": "D", "text": "VPN Gateway in the private subnet"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "A NAT Gateway (Network Address Translation) allows instances in private subnets to initiate outbound connections to the internet while preventing inbound connections from the internet. It lives in a public subnet and is referenced in the private subnet's route table.",
+      "perOption": {
+        "A": "An Internet Gateway (IGW) cannot be attached to a private subnet — it goes on the VPC, and only routes in public subnets point to it. Even then, IGW allows both inbound and outbound traffic for resources with public IPs.",
+        "B": "CORRECT. NAT Gateway placement: public subnet (needs public IP). Private subnet route: 0.0.0.0/0 → NAT Gateway. Traffic flows: EC2 (private) → NAT Gateway → IGW → internet. Inbound connections from internet are blocked.",
+        "C": "VPC Peering connects two VPCs together. It doesn't provide internet access.",
+        "D": "A VPN Gateway connects to on-premises networks via VPN tunnels. It doesn't provide internet access for private instances."
+      }
+    }
+  },
+  {
+    "id": "fnd009",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "Which AWS storage service is object-based, offers virtually unlimited storage capacity, and is accessed via HTTP/HTTPS?",
+    "options": [
+      {"id": "A", "text": "Amazon EBS (Elastic Block Store)"},
+      {"id": "B", "text": "Amazon EFS (Elastic File System)"},
+      {"id": "C", "text": "Amazon S3 (Simple Storage Service)"},
+      {"id": "D", "text": "Amazon FSx"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "Amazon S3 is object storage accessed via HTTP/HTTPS REST APIs. Objects (files) are stored in buckets. There is no practical limit on capacity — each object can be up to 5 TB, and there's no bucket size limit.",
+      "perOption": {
+        "A": "EBS is block storage that attaches to EC2 instances like a virtual hard drive. It's not object storage and is accessed at the block level, not via HTTP.",
+        "B": "EFS is a managed NFS file system (file storage, not object storage). It's accessed via the NFS protocol, not HTTP, and mounts like a network drive.",
+        "C": "CORRECT. S3 stores objects (any file type) in buckets, accessed via REST API over HTTPS. Key features: unlimited capacity, 99.999999999% (11 9s) durability, regional service.",
+        "D": "FSx is a managed file system service (for Windows SMB, Lustre HPC, etc.). File storage, not object storage."
+      }
+    }
+  },
+  {
+    "id": "fnd010",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A web application experiences traffic that fluctuates significantly — 10 users at night and 10,000 users during business hours. Which AWS service automatically adjusts the number of EC2 instances to match demand?",
+    "options": [
+      {"id": "A", "text": "Elastic Load Balancing"},
+      {"id": "B", "text": "Amazon CloudFront"},
+      {"id": "C", "text": "AWS Auto Scaling"},
+      {"id": "D", "text": "Amazon Route 53"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "AWS Auto Scaling (specifically EC2 Auto Scaling Groups) automatically adds EC2 instances when demand rises and removes them when demand falls. This ensures you have just the right capacity to handle load while minimizing cost.",
+      "perOption": {
+        "A": "Elastic Load Balancing distributes traffic across multiple instances. It works WITH Auto Scaling but doesn't itself add or remove instances.",
+        "B": "CloudFront is a CDN that caches content at edge locations worldwide. It reduces load on origin servers but doesn't add/remove EC2 instances.",
+        "C": "CORRECT. Auto Scaling Groups (ASG) maintain a desired number of instances, scale out when CPU/load is high, and scale in when load drops. Combined with ELB, this creates a highly elastic architecture.",
+        "D": "Route 53 is DNS (Domain Name System) — it translates domain names to IP addresses and routes traffic. It doesn't add or remove compute capacity."
+      }
+    }
+  },
+  {
+    "id": "fnd011",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "Which AWS service is a managed relational database that supports MySQL, PostgreSQL, Oracle, SQL Server, and MariaDB engines?",
+    "options": [
+      {"id": "A", "text": "Amazon DynamoDB"},
+      {"id": "B", "text": "Amazon RDS"},
+      {"id": "C", "text": "Amazon Redshift"},
+      {"id": "D", "text": "Amazon ElastiCache"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon RDS (Relational Database Service) is a managed service that makes it easy to set up, operate, and scale relational databases. AWS handles hardware provisioning, patching, backups, and Multi-AZ failover.",
+      "perOption": {
+        "A": "DynamoDB is a fully managed NoSQL key-value and document database, not relational. It doesn't use SQL joins or schemas.",
+        "B": "CORRECT. RDS supports MySQL, PostgreSQL, MariaDB, Oracle, SQL Server, and Amazon Aurora. AWS manages the database engine and infrastructure; you manage the database schema and queries.",
+        "C": "Redshift is a managed data warehousing service for analytics (OLAP). While it uses SQL, it's not for transactional workloads.",
+        "D": "ElastiCache is a managed in-memory caching service (Redis or Memcached). It's not a relational database."
+      }
+    }
+  },
+  {
+    "id": "fnd012",
+    "domain": 0,
+    "taskStatement": "0.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A new AWS account is created. The account owner logs in with the root user to set up initial access. Which is the MOST important first security step?",
+    "options": [
+      {"id": "A", "text": "Create an S3 bucket for log storage"},
+      {"id": "B", "text": "Enable Multi-Factor Authentication (MFA) on the root account"},
+      {"id": "C", "text": "Create EC2 instances in all Regions"},
+      {"id": "D", "text": "Set a strong password for the root account"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "The root account has unrestricted access to everything in the AWS account, including billing, and cannot be restricted by IAM policies. Enabling MFA on root is the single most critical first security action — even a compromised root password won't be enough for an attacker with MFA enabled.",
+      "perOption": {
+        "A": "Logging is important but it doesn't protect the account from unauthorized access. It's a secondary concern.",
+        "B": "CORRECT. Root MFA is the first recommended action in AWS Security Best Practices. AWS Trusted Advisor also flags missing root MFA as a critical finding.",
+        "C": "Creating EC2 instances in all Regions has nothing to do with account security. This would actually increase cost and attack surface.",
+        "D": "A strong password is necessary but not sufficient. If the password is phished or compromised, MFA is the second layer of defense. MFA + strong password is the correct approach, but MFA is the single most important step."
+      }
+    }
+  },
+  {
+    "id": "fnd013",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "Which of the following describes the AWS Well-Architected Framework pillar focused on 'running and monitoring systems to deliver business value, and continually improving processes and procedures'?",
+    "options": [
+      {"id": "A", "text": "Security"},
+      {"id": "B", "text": "Reliability"},
+      {"id": "C", "text": "Operational Excellence"},
+      {"id": "D", "text": "Performance Efficiency"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "Operational Excellence focuses on running workloads effectively, gaining insight into operations, and continually improving processes. Key practices include infrastructure as code, making frequent small changes, anticipating failure, and learning from operational events.",
+      "perOption": {
+        "A": "Security focuses on protecting information and systems — identity management, encryption, incident response.",
+        "B": "Reliability focuses on a workload performing its intended function correctly and consistently — fault tolerance, recovery from failures, scaling.",
+        "C": "CORRECT. Operational Excellence: automation of operations, event response, and continuous improvement. AWS services: CloudFormation (IaC), CloudWatch (monitoring), Config (compliance), CloudTrail (auditing).",
+        "D": "Performance Efficiency focuses on using compute resources efficiently to meet requirements — right instance types, serverless, caching."
+      }
+    }
+  },
+  {
+    "id": "fnd014",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to send email notifications when their AWS bill exceeds $500 in a month. Which AWS service enables this?",
+    "options": [
+      {"id": "A", "text": "Amazon SNS (Simple Notification Service)"},
+      {"id": "B", "text": "AWS Budgets"},
+      {"id": "C", "text": "AWS Cost Explorer"},
+      {"id": "D", "text": "Amazon CloudWatch"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "AWS Budgets lets you set custom cost and usage budgets. When actual or forecasted costs exceed thresholds, Budgets sends alerts via email or SNS. It's purpose-built for billing alerts.",
+      "perOption": {
+        "A": "SNS is a messaging service for pub/sub notifications. AWS Budgets uses SNS under the hood to deliver alerts, but SNS itself doesn't monitor billing.",
+        "B": "CORRECT. AWS Budgets: set a cost budget of $500/month, add an email alert at 80% and 100% of budget. Budgets also support usage budgets and Savings Plans coverage alerts.",
+        "C": "Cost Explorer provides visualizations and analysis of historical and forecasted costs. It doesn't set up automatic alerts when thresholds are crossed.",
+        "D": "CloudWatch monitors AWS resources and applications (CPU, memory, custom metrics). While it can trigger alarms, billing alerts are specifically a Budgets feature."
+      }
+    }
+  },
+  {
+    "id": "fnd015",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "An application needs to process messages asynchronously. A web server places a job request into a queue, and worker instances pick up and process these jobs. Which AWS service provides this managed queue?",
+    "options": [
+      {"id": "A", "text": "Amazon SNS"},
+      {"id": "B", "text": "Amazon SQS"},
+      {"id": "C", "text": "Amazon Kinesis"},
+      {"id": "D", "text": "AWS Step Functions"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon SQS (Simple Queue Service) is a fully managed message queuing service. Producers write messages to the queue; consumers poll the queue and process messages. This decouples the web server from the worker instances.",
+      "perOption": {
+        "A": "Amazon SNS (Simple Notification Service) is a pub/sub messaging service for fanout — one message goes to many subscribers. It's not a queue for worker-based processing.",
+        "B": "CORRECT. SQS is the classic decoupling pattern: web tier → SQS queue → worker tier. Messages persist until processed (up to 14 days). Worker instances can be scaled independently.",
+        "C": "Amazon Kinesis is for real-time data streaming (logs, events, IoT data). It supports multiple consumers reading the same stream simultaneously. Not the same as a work queue.",
+        "D": "Step Functions is a workflow orchestration service. It coordinates multi-step workflows with state management. Not a simple message queue."
+      }
+    }
+  },
+  {
+    "id": "fnd016",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company wants to run containerized applications without managing the underlying EC2 instances. Which combination of services achieves this?",
+    "options": [
+      {"id": "A", "text": "Amazon ECS with EC2 launch type"},
+      {"id": "B", "text": "Amazon ECS with Fargate launch type"},
+      {"id": "C", "text": "Amazon EC2 with Docker installed manually"},
+      {"id": "D", "text": "Amazon ECR with Auto Scaling"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "AWS Fargate is a serverless compute engine for containers. With ECS on Fargate, you define your container task (CPU, memory, image) and AWS runs it — no EC2 instances to provision, patch, or scale.",
+      "perOption": {
+        "A": "ECS EC2 launch type runs containers on EC2 instances you manage. You still need to provision and maintain the cluster EC2 instances.",
+        "B": "CORRECT. ECS + Fargate: you specify container requirements (CPU, memory, image). AWS provisions the compute, runs the container, and you're charged only for the resources used. No EC2 management.",
+        "C": "Manually installing Docker on EC2 requires managing everything: EC2 provisioning, OS patching, Docker updates, scaling. Maximum management overhead.",
+        "D": "Amazon ECR (Elastic Container Registry) is a container image registry — it stores Docker images. ECR alone doesn't run containers."
+      }
+    }
+  },
+  {
+    "id": "fnd017",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "Which AWS service helps customers understand which AWS services they are responsible for securing versus which ones AWS is responsible for, based on the service type?",
+    "options": [
+      {"id": "A", "text": "AWS Trusted Advisor"},
+      {"id": "B", "text": "AWS Shared Responsibility Model documentation"},
+      {"id": "C", "text": "AWS Security Hub"},
+      {"id": "D", "text": "Amazon Inspector"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "The AWS Shared Responsibility Model is a framework (documented on aws.amazon.com) that clearly divides security responsibilities: AWS is responsible for security OF the cloud (infrastructure), customers are responsible for security IN the cloud (data, access, app configuration). The model varies by service type: IaaS (EC2) puts more on the customer; SaaS (S3) puts more on AWS.",
+      "perOption": {
+        "A": "Trusted Advisor provides best practice recommendations for cost, security, performance, and reliability — but doesn't specifically explain the responsibility model.",
+        "B": "CORRECT. The Shared Responsibility Model defines what AWS secures (hardware, global network, managed service foundations) and what customers secure (OS, applications, data, IAM configuration).",
+        "C": "Security Hub aggregates security findings from multiple AWS services into a central dashboard. It's an operational tool, not a framework document.",
+        "D": "Amazon Inspector scans EC2 instances and container images for vulnerabilities. An operational tool for security assessment."
+      }
+    }
+  },
+  {
+    "id": "fnd018",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's users are in Europe and their web application is deployed in us-east-1. They want to improve page load times for European users. Which service helps distribute static content (images, JS, CSS) to locations closer to European users?",
+    "options": [
+      {"id": "A", "text": "AWS Global Accelerator"},
+      {"id": "B", "text": "Amazon CloudFront"},
+      {"id": "C", "text": "Amazon Route 53 geolocation routing"},
+      {"id": "D", "text": "AWS Direct Connect"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon CloudFront is a CDN (Content Delivery Network) with 400+ edge locations worldwide. Static content is cached at the edge location closest to the user. European users fetch images from a Frankfurt or London edge location instead of us-east-1.",
+      "perOption": {
+        "A": "Global Accelerator routes traffic over the AWS global network to improve performance for TCP/UDP workloads. It doesn't cache content — it routes to the nearest AWS Region endpoint.",
+        "B": "CORRECT. CloudFront caches static content (images, CSS, JS, videos) at edge locations near users. Cache hit = served from 10ms away instead of 150ms away. Dramatically improves page load for static assets.",
+        "C": "Route 53 geolocation routing routes DNS queries to different endpoints based on user location. But it still routes to us-east-1 for European users (or you'd need to replicate the app to a European Region).",
+        "D": "Direct Connect is a dedicated private network link from on-premises to AWS. It doesn't help distribute content to end users."
+      }
+    }
+  },
+  {
+    "id": "fnd019",
+    "domain": 0,
+    "taskStatement": "0.3",
+    "difficulty": "hard",
+    "type": "multiple-response",
+    "question": "A solutions architect is designing a three-tier web application on AWS (web tier, application tier, database tier). Which TWO design principles should be followed to ensure the application is highly available?",
+    "options": [
+      {"id": "A", "text": "Deploy web and app tier EC2 instances across multiple Availability Zones behind an Elastic Load Balancer"},
+      {"id": "B", "text": "Use Amazon RDS with Multi-AZ enabled for the database tier"},
+      {"id": "C", "text": "Use a single large EC2 instance for the application tier to reduce complexity"},
+      {"id": "D", "text": "Store all session state on local instance storage"},
+      {"id": "E", "text": "Deploy everything in the same Availability Zone for lowest latency"}
+    ],
+    "correctAnswers": ["A", "B"],
+    "explanation": {
+      "correct": "High availability requires eliminating single points of failure at every tier. Multi-AZ EC2 behind ELB handles web/app tier failures. RDS Multi-AZ provides automatic database failover. Together these ensure the application survives an AZ-level failure.",
+      "perOption": {
+        "A": "CORRECT. ELB distributes traffic across multiple AZs. If one AZ fails, ELB automatically routes to healthy instances in other AZs. This is the standard HA pattern for stateless web/app tiers.",
+        "B": "CORRECT. RDS Multi-AZ maintains a synchronous standby replica in another AZ. If the primary fails, AWS automatically fails over to the standby (typically 1-2 minutes). No manual intervention required.",
+        "C": "A single instance is a single point of failure — no HA. Large vs. small is a performance/cost decision, but HA requires multiple instances.",
+        "D": "Local instance storage is lost if the instance terminates. Session state should be stored in a shared, distributed store (ElastiCache, DynamoDB) to enable stateless instances that can be terminated/replaced.",
+        "E": "Single AZ creates a single point of failure. An AZ outage (power, cooling, networking) would take down the entire application."
+      }
+    }
+  },
+  {
+    "id": "fnd020",
+    "domain": 0,
+    "taskStatement": "0.1",
+    "difficulty": "hard",
+    "type": "multiple-response",
+    "question": "Which TWO statements correctly describe the relationship between AWS Regions and Availability Zones?",
+    "options": [
+      {"id": "A", "text": "Each AWS Region consists of multiple, physically separated Availability Zones"},
+      {"id": "B", "text": "Availability Zones within the same Region are connected by low-latency, high-bandwidth networking"},
+      {"id": "C", "text": "A Region has exactly two Availability Zones for redundancy"},
+      {"id": "D", "text": "Availability Zones in the same Region share power and cooling infrastructure"},
+      {"id": "E", "text": "Moving data between Availability Zones in the same Region always incurs zero data transfer costs"}
+    ],
+    "correctAnswers": ["A", "B"],
+    "explanation": {
+      "correct": "AWS Regions contain multiple (typically 3+) physically isolated AZs. AZs within a Region are connected by private, low-latency fiber links enabling synchronous replication and fast failover. Physical isolation ensures AZ failures don't cascade.",
+      "perOption": {
+        "A": "CORRECT. Every Region has a minimum of 2 AZs (most have 3+). Each AZ is one or more physical data centers with independent power, cooling, and networking.",
+        "B": "CORRECT. AZs in the same Region are connected by redundant, ultra-low-latency private fiber links. This enables synchronous database replication (RDS Multi-AZ) with acceptable performance.",
+        "C": "Incorrect. Most Regions have 3 or more AZs (us-east-1 has 6). Two is the minimum, not the standard.",
+        "D": "Incorrect. AZs are designed to be physically isolated with completely independent power and cooling. Shared infrastructure would mean a single failure could take down multiple AZs.",
+        "E": "Incorrect. Cross-AZ data transfer within the same Region costs $0.01/GB in each direction. This cost incentivizes keeping related resources in the same AZ."
+      }
+    }
+  }
+]

@@ -1,0 +1,139 @@
+---
+title: "Elastic Load Balancing"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "elastic-load-balancing"
+order: 2
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["alb", "nlb", "glb", "elb", "load-balancer", "target-group"]
+services: ["Elastic Load Balancing", "AWS ALB", "AWS NLB"]
+---
+
+## What is Elastic Load Balancing?
+
+**Elastic Load Balancing (ELB)** automatically distributes incoming traffic across multiple targets (EC2 instances, Lambda functions, containers, IP addresses) in one or more AZs.
+
+ELB provides:
+- High availability across multiple AZs
+- Health checking — automatic removal of unhealthy targets
+- SSL/TLS termination
+- Integration with Auto Scaling
+
+AWS offers four load balancer types:
+
+## Application Load Balancer (ALB)
+
+**ALB** operates at **Layer 7 (HTTP/HTTPS)**. It inspects the content of HTTP requests and routes based on:
+
+- **Path-based routing**: `/api/*` → API target group, `/images/*` → image servers
+- **Host-based routing**: `api.example.com` → API targets, `www.example.com` → web targets
+- **Header-based routing**: Route based on HTTP headers
+- **Query string routing**: Route based on URL parameters
+- **HTTP method routing**: GET vs POST
+
+**Key features:**
+- Native HTTPS support with ACM certificates
+- **HTTP/2** and **gRPC** support
+- **WebSocket** support
+- **Sticky sessions** (session affinity) based on cookie
+- **Lambda functions** as targets
+- **User authentication** via Cognito or OIDC (add an authentication action to the listener)
+- **WAF integration** for L7 security
+- Returns **fixed responses** (e.g., 503 maintenance page) without hitting targets
+
+**Target groups**: ALB routes to target groups, not directly to instances. A target group contains EC2 instances, Lambda functions, or IP addresses.
+
+<ExamTip>
+ALB is the right answer for anything HTTP/HTTPS with routing rules. "Route `/api` to the API service and `/` to the web app" → ALB with path-based routing rules.
+</ExamTip>
+
+## Network Load Balancer (NLB)
+
+**NLB** operates at **Layer 4 (TCP/UDP)**. It is designed for:
+- Ultra-low latency (microseconds)
+- Extreme high performance (millions of requests per second)
+- Static IP addresses (one per AZ)
+- **Elastic IP support**: Assign a fixed Elastic IP to each AZ endpoint
+- TCP/UDP protocols (not just HTTP)
+
+**Key use cases:**
+- Game servers requiring low-latency TCP
+- Financial systems requiring static IPs
+- IoT and real-time data processing
+- **AWS PrivateLink**: NLB is required in the provider VPC for PrivateLink
+- **Exposing services to other VPCs**
+
+**NLB does not support WAF** — it passes raw TCP traffic, so Layer 7 inspection isn't possible.
+
+## Gateway Load Balancer (GWLB)
+
+**GWLB** operates at **Layer 3 (network)** and is specifically designed to deploy, scale, and manage third-party virtual appliances:
+- Firewalls
+- Intrusion detection/prevention systems (IDS/IPS)
+- Deep packet inspection
+- Network monitoring
+
+GWLB acts as a transparent bump-in-the-wire, sending all traffic through the appliances before it reaches your application. The traffic is encapsulated using GENEVE protocol.
+
+**Use case**: A company wants all internet traffic to pass through a Palo Alto firewall before reaching their ALB.
+
+## Classic Load Balancer (Legacy)
+
+The original ELB — operates at both Layer 4 and Layer 7 but with limited features. Not recommended for new deployments. Only mentioned here for awareness.
+
+## Load Balancer Comparison
+
+<ComparisonTable
+  headers={["Feature", "ALB", "NLB", "GWLB"]}
+  rows={[
+    ["OSI Layer", "L7 (HTTP/HTTPS)", "L4 (TCP/UDP)", "L3 (network)"],
+    ["Routing", "Content-based (path, host, header)", "Port-based", "Transparent pass-through"],
+    ["Performance", "High", "Extreme (microseconds)", "High"],
+    ["Static IP", "No (use NLB in front)", "Yes (one per AZ)", "Yes"],
+    ["Targets", "EC2, Lambda, IPs, containers", "EC2, IPs, ALB", "Virtual appliances"],
+    ["WAF support", "Yes", "No", "No"],
+    ["Use case", "Web apps, microservices", "TCP apps, PrivateLink, gaming", "Firewall/IDS appliances"],
+  ]}
+/>
+
+## Health Checks
+
+All ELB types perform **health checks** on targets:
+- HTTP health check: GET request to a path (e.g., `/health`), expect 200 response
+- TCP health check: Successful TCP connection
+- A target fails health checks → removed from the pool (no traffic sent to it)
+- Unhealthy → healthy: target is added back automatically
+
+**Key settings:**
+- Health check path, protocol, port
+- Interval (how often to check)
+- Unhealthy threshold (consecutive failures before marking unhealthy)
+- Healthy threshold (consecutive successes before marking healthy)
+
+## Cross-Zone Load Balancing
+
+**Cross-zone load balancing** distributes traffic evenly across all registered targets in all enabled AZs:
+
+- **ALB**: Always enabled, free
+- **NLB**: Disabled by default, data transfer charges apply when enabled
+- **GWLB**: Disabled by default
+
+Without cross-zone load balancing: If AZ-1 has 2 targets and AZ-2 has 8 targets, 50% of traffic goes to each AZ — AZ-1's 2 targets get 25% each while AZ-2's 8 targets get 6.25% each.
+
+## Connection Draining / Deregistration Delay
+
+When a target is deregistered or becomes unhealthy, ELB stops sending new requests to it but waits for in-flight requests to complete:
+- Default: 300 seconds
+- Set to low value (20s) for Lambda or fast stateless services
+- Set to higher value for long-running requests
+
+## Summary
+
+- **ALB**: L7, HTTP/HTTPS, content-based routing (path, host, headers). WAF integration. Use for web apps.
+- **NLB**: L4, TCP/UDP, ultra-low latency, static IPs, PrivateLink. Use for TCP apps, high performance.
+- **GWLB**: L3, deploys virtual network appliances transparently. Use for firewalls/IDS.
+- Health checks automatically route around failures.
+- Cross-zone load balancing: always on in ALB, optional in NLB/GWLB.

@@ -1,0 +1,154 @@
+---
+title: "ElastiCache: In-Memory Caching"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "elasticache"
+order: 6
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["elasticache", "redis", "memcached", "caching", "session", "in-memory"]
+services: ["Amazon ElastiCache"]
+---
+
+## Why In-Memory Caching?
+
+Database queries take milliseconds. In-memory caches respond in microseconds to sub-millisecond. By caching frequently read data in memory:
+- **Reduce database load**: Fewer queries hit the database
+- **Reduce latency**: Sub-millisecond responses for cached data
+- **Increase throughput**: Handle more requests without scaling the database
+
+## Amazon ElastiCache
+
+**ElastiCache** is a fully managed in-memory caching service with two engines:
+
+<ComparisonTable
+  headers={["Feature", "Redis", "Memcached"]}
+  rows={[
+    ["Data types", "Rich: strings, hashes, lists, sets, sorted sets, streams, geospatial", "Simple: strings only"],
+    ["Persistence", "Yes (AOF, RDB snapshots)", "No (pure in-memory, data lost on restart)"],
+    ["Replication", "Yes (primary + replicas)", "No"],
+    ["Cluster mode", "Yes (multi-shard, multi-AZ)", "Yes (multi-node, no replication)"],
+    ["Multi-AZ failover", "Yes (automatic failover)", "No"],
+    ["Pub/Sub messaging", "Yes", "No"],
+    ["Lua scripting", "Yes", "No"],
+    ["HIPAA/PCI compliant", "Yes", "No"],
+    ["In-transit encryption", "Yes", "Yes"],
+    ["Best for", "Session storage, leaderboards, real-time analytics, pub/sub", "Simple object caching, multi-threaded, pure performance"],
+  ]}
+/>
+
+<ExamTip>
+**Redis** is the right answer for virtually all exam scenarios. Use **Memcached** only if the question specifically needs multi-threaded simple caching without persistence or replication requirements. When in doubt: choose Redis.
+</ExamTip>
+
+## Common Caching Patterns
+
+### Cache-Aside (Lazy Loading)
+
+Application checks cache first; on miss, reads from database and populates cache:
+
+```python
+def get_user(user_id):
+    # 1. Check cache
+    user = cache.get(f"user:{user_id}")
+    
+    # 2. Cache miss: read from DB and populate cache
+    if not user:
+        user = db.query("SELECT * FROM users WHERE id = ?", user_id)
+        cache.set(f"user:{user_id}", user, ttl=3600)
+    
+    return user
+```
+
+**Pros**: Only requested data is cached. Resilient to cache failures (fall through to DB).
+**Cons**: Cache miss = 3 operations (cache, DB, cache write). Stale data possible.
+
+### Write-Through
+
+Write to cache AND database on every write. Cache is always up to date:
+
+```python
+def update_user(user_id, data):
+    db.update(...)
+    cache.set(f"user:{user_id}", data, ttl=3600)
+```
+
+**Pros**: Cache always fresh. No stale data.
+**Cons**: Write penalty (extra cache write). Rarely read data still gets cached (waste).
+
+### Write-Behind (Write-Back)
+
+Write to cache only; asynchronously write to database:
+- Higher write performance
+- Risk of data loss if cache fails before DB write
+
+## Redis Key Use Cases
+
+### Session Storage
+Store user sessions in Redis instead of database or server memory:
+- Stateless application servers (any server can serve any user)
+- Sub-millisecond session lookup
+- TTL-based expiration (set session to expire after 30 minutes of inactivity)
+
+### Leaderboards (Sorted Sets)
+Redis sorted sets maintain a ranked list with O(log N) operations:
+- Add user score: `ZADD leaderboard 1000 "alice"`
+- Get rank: `ZRANK leaderboard "alice"`
+- Get top 10: `ZRANGE leaderboard -10 -1 WITHSCORES`
+
+Real-time leaderboards for gaming, trading, and ranking systems.
+
+### Rate Limiting
+Use Redis atomic counters to implement rate limiting:
+- Increment a counter per user per time window
+- If counter exceeds limit, reject the request
+- Counter expires automatically (TTL = time window)
+
+### Pub/Sub Messaging
+Redis pub/sub allows real-time messaging:
+- Publishers send messages to channels
+- Subscribers receive messages instantly
+- Good for chat, notifications, real-time data feeds
+- NOT durable (messages lost if no subscriber is listening)
+
+## ElastiCache Cluster Modes
+
+### Redis Cluster Mode Disabled
+- One shard: primary + up to 5 read replicas
+- All data on one node (limited to node memory size)
+- Read scaling via replicas; write scaling limited to primary
+- Multi-AZ: replicas in different AZs, automatic failover
+
+### Redis Cluster Mode Enabled
+- Data sharded across multiple shards (partitions)
+- Each shard has its own primary + replicas
+- Scale out to hundreds of nodes
+- Scale reads AND writes
+- Required for datasets larger than one node's memory
+
+## ElastiCache Placement in Architecture
+
+**Standard caching pattern:**
+
+```
+Client Request
+    ↓
+Application Server
+    ├── Cache Hit: Return from ElastiCache (~1ms)
+    └── Cache Miss: Query RDS → Store in ElastiCache → Return
+             ↓
+         Amazon RDS (only for cache misses)
+```
+
+**Result**: 90%+ of reads served from cache → RDS handles only 10% of the load.
+
+## Summary
+
+- **Redis**: Rich data types, persistence, replication, multi-AZ. Use for almost everything.
+- **Memcached**: Simple, multi-threaded, no persistence. Use for pure simple caching needs.
+- **Cache-Aside**: Most common pattern. Check cache → miss → read DB → populate cache.
+- **Write-Through**: Write to cache and DB simultaneously. Always fresh cache.
+- **Session storage**: Classic Redis use case. Stateless app servers, sub-ms session lookup.
+- **Sorted sets**: Real-time leaderboards with automatic ranking.

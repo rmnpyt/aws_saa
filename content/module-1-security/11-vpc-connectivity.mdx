@@ -1,0 +1,126 @@
+---
+title: "VPC Connectivity: Peering, Endpoints & PrivateLink"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "vpc-connectivity"
+order: 11
+domain: 1
+taskStatements: ["1.2"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["vpc-peering", "privatelink", "endpoints", "interface-endpoint", "gateway-endpoint"]
+services: ["Amazon VPC", "AWS PrivateLink"]
+---
+
+## Connecting VPCs Without the Internet
+
+By default, VPCs are completely isolated. To connect them (or access AWS services privately), AWS offers several options:
+
+| Solution | Use case |
+|---|---|
+| **VPC Peering** | Connect two VPCs directly (same or different accounts/regions) |
+| **Gateway Endpoint** | Private access to S3 and DynamoDB (free) |
+| **Interface Endpoint** | Private access to other AWS services via PrivateLink |
+| **Transit Gateway** | Hub-and-spoke connectivity for many VPCs |
+
+## VPC Peering
+
+**VPC Peering** creates a private, direct network connection between two VPCs. Traffic routes through the AWS backbone — not the internet.
+
+**Key facts:**
+- Works across accounts and across regions (inter-region peering)
+- No bandwidth bottleneck or single point of failure
+- Each pair requires its own peering connection — NOT transitive
+
+**Transitive routing does NOT work:**
+```
+VPC-A <—peered—> VPC-B <—peered—> VPC-C
+
+VPC-A CANNOT communicate with VPC-C through VPC-B
+You need a direct peering connection between A and C
+```
+
+**Setup steps:**
+1. Request peering connection from VPC-A
+2. Accept the request in VPC-B
+3. Add routes in both route tables: pointing each VPC's CIDR to the peering connection
+4. Update security groups to allow traffic from the peer's CIDR
+
+**CIDR overlap is not allowed** — peered VPCs must have non-overlapping IP address ranges.
+
+<ExamTip>
+VPC Peering does not support **transitive routing**. If you need full mesh connectivity between many VPCs, you'd need N*(N-1)/2 peering connections — or use **Transit Gateway** instead.
+</ExamTip>
+
+## VPC Endpoints
+
+**VPC Endpoints** allow you to access AWS services privately from within your VPC, without sending traffic through the internet or a NAT Gateway.
+
+### Gateway Endpoints
+
+**Gateway Endpoints** are free and work with only two services: **S3** and **DynamoDB**.
+
+- Routes traffic through the VPC's route table
+- Adds a route in your route table pointing to the endpoint
+- No additional cost
+- Traffic never leaves the AWS network
+
+**When to use**: Any time your private subnet resources need to access S3 or DynamoDB — always prefer Gateway Endpoint over NAT Gateway for these services.
+
+### Interface Endpoints (AWS PrivateLink)
+
+**Interface Endpoints** create an ENI (Elastic Network Interface) in your subnet with a private IP address. Traffic to the AWS service uses this private IP.
+
+- Supports hundreds of AWS services (CloudWatch, Secrets Manager, SQS, SNS, KMS, etc.)
+- Costs ~$0.01/hour per AZ + data processing
+- Access via DNS — the service's regional DNS name resolves to the private IP
+- Can also be used to share your own services privately (PrivateLink for your own services)
+
+**Interface vs. Gateway Endpoint:**
+
+<ComparisonTable
+  headers={["Aspect", "Gateway Endpoint", "Interface Endpoint"]}
+  rows={[
+    ["Services supported", "S3, DynamoDB only", "Most AWS services + custom PrivateLink services"],
+    ["How it works", "Route table entry", "ENI with private IP in your subnet"],
+    ["Cost", "Free", "~$0.01/hour/AZ + data charge"],
+    ["DNS", "No change", "Service DNS resolves to private IP"],
+    ["Cross-region", "No", "No (regional)"],
+  ]}
+/>
+
+## AWS PrivateLink (Service Endpoints for Custom Services)
+
+**PrivateLink** allows you to expose YOUR services to other VPCs privately, without peering or exposing the internet:
+
+```
+Provider VPC → Network Load Balancer → Your Service
+
+Consumer VPCs → Interface Endpoint → NLB in provider VPC
+```
+
+This is how AWS exposes its own services (via Interface Endpoints), and how SaaS vendors can expose their services to customer VPCs securely.
+
+**Benefits:**
+- Traffic never leaves the Amazon network
+- No VPC peering needed between provider and consumer
+- Provider doesn't need to know consumer's VPC CIDR
+- Scales to thousands of consumer VPCs
+
+## When to Use Which
+
+| Scenario | Solution |
+|---|---|
+| Two VPCs that need to talk to each other | VPC Peering |
+| Many VPCs that all need to interconnect | Transit Gateway |
+| Private access to S3 from private subnet | Gateway Endpoint (free) |
+| Private access to CloudWatch/Secrets Manager | Interface Endpoint (PrivateLink) |
+| Expose your service to other customer VPCs | PrivateLink (NLB + Interface Endpoint) |
+
+## Summary
+
+- **VPC Peering**: Direct 1-1 connection, non-transitive, works cross-account and cross-region
+- **Gateway Endpoint**: Free, for S3 and DynamoDB only, works via route table
+- **Interface Endpoint (PrivateLink)**: Private IP in your subnet, for most AWS services
+- **PrivateLink**: Expose your services to other VPCs without full peering
+- Always choose Gateway Endpoint for S3/DynamoDB (free) before considering NAT Gateway

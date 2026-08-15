@@ -1,0 +1,90 @@
+---
+title: "AWS Global Infrastructure"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "global-infrastructure"
+order: 2
+domain: 0
+taskStatements: []
+estimatedMinutes: 30
+difficulty: "beginner"
+tags: ["regions", "availability-zones", "edge-locations", "infrastructure"]
+services: ["Amazon CloudFront", "Amazon Route 53"]
+---
+
+## The Three Tiers of AWS Infrastructure
+
+AWS's global network has three levels of geographic scope:
+
+### 1. AWS Regions
+
+A **Region** is a separate geographic area (e.g., us-east-1, eu-west-1, ap-southeast-1) containing **multiple, isolated data centers** called Availability Zones. Each Region is completely independent — a failure in one Region does not affect another.
+
+**Choosing a Region depends on:**
+- **Compliance and data residency** — Some regulations require data to stay in specific countries
+- **Latency** — Deploy closer to your users
+- **Service availability** — Not all AWS services are in every Region (newer services roll out to us-east-1 first)
+- **Pricing** — Pricing varies by Region (us-east-1 is typically cheapest)
+
+<ExamTip>
+"Which factors should determine Region selection?" is a common question. Remember: **Compliance → Latency → Services → Pricing**. Compliance always wins.
+</ExamTip>
+
+### 2. Availability Zones (AZs)
+
+An **Availability Zone** is one or more physical data centers within a Region. Each AZ:
+- Has independent power, cooling, and networking
+- Is connected to other AZs in the same Region via **low-latency, high-bandwidth, private fiber**
+- Is geographically separated (miles apart) to avoid shared failure modes (flooding, power grid issues)
+
+**Key facts for the exam:**
+- Most Regions have **3+ AZs** (minimum 2, typically 3)
+- AZ names look like `us-east-1a`, `us-east-1b`, `us-east-1c`
+- AZ names are **randomized per AWS account** (your `us-east-1a` may map to a different physical data center than another account's `us-east-1a`)
+
+<KeyConcept title="Why Multi-AZ matters">
+Deploying across multiple AZs protects against data center failures. If AZ-1 goes down, your app in AZ-2 keeps running. This is the foundational concept behind RDS Multi-AZ, ALB target groups, and Auto Scaling.
+</KeyConcept>
+
+### 3. Edge Locations / Points of Presence (PoPs)
+
+**Edge Locations** are AWS endpoints used for **caching and content delivery**, not for running compute workloads. They are far more numerous than Regions (400+ globally).
+
+**Services that use Edge Locations:**
+- **Amazon CloudFront** — CDN caches content at the nearest edge location to the user
+- **Amazon Route 53** — DNS resolution at low latency
+- **AWS Shield** — DDoS protection runs at edge
+- **AWS WAF** (when attached to CloudFront) — Filters traffic at the edge
+
+**Regional Edge Caches** sit between CloudFront Edge Locations and the origin, providing a larger cache for less-popular content.
+
+## Other Infrastructure Components
+
+| Component | Description |
+|---|---|
+| **AWS Local Zones** | Extensions of a Region placed in metro areas (e.g., Los Angeles) for sub-10ms latency to specific cities |
+| **AWS Wavelength Zones** | AWS infrastructure embedded in 5G carrier networks for ultra-low latency mobile applications |
+| **AWS Outposts** | AWS racks deployed in your own data center — run AWS APIs on-premises |
+
+<ComparisonTable
+  headers={["Component", "Scope", "Key Use Case"]}
+  rows={[
+    ["Region", "Country/continent", "Isolate workloads geographically, compliance"],
+    ["Availability Zone", "Data center cluster", "High availability within a Region"],
+    ["Edge Location / PoP", "City-level", "CDN caching, DNS, DDoS mitigation"],
+    ["Local Zone", "Metro area", "Single-digit ms latency for specific cities"],
+    ["Wavelength Zone", "5G carrier network", "Ultra-low latency for mobile/IoT"],
+    ["Outpost", "Your data center", "Hybrid cloud, data residency on-premises"],
+  ]}
+/>
+
+## AWS Global Network
+
+The AWS **backbone network** is a private, global network that connects all Regions. When you use AWS Global Accelerator, traffic enters the AWS backbone at the nearest edge location and travels over AWS's private network instead of the public internet — reducing jitter and latency.
+
+## Summary
+
+- **Region** = geographic area with 3+ AZs. Choose based on compliance > latency > services > price
+- **Availability Zone** = independent data center(s) within a Region. Deploy across 2+ AZs for HA
+- **Edge Location** = CDN/DNS endpoints. More numerous than Regions. Used by CloudFront and Route 53
+- Multi-AZ is the primary HA strategy within a Region; Multi-Region for DR

@@ -1,0 +1,149 @@
+---
+title: "Database Resilience: RDS & Aurora HA"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "rds-ha"
+order: 8
+domain: 2
+taskStatements: ["2.1", "2.2"]
+estimatedMinutes: 50
+difficulty: "intermediate"
+tags: ["rds", "aurora", "multi-az", "read-replica", "failover", "database"]
+services: ["Amazon RDS", "Amazon Aurora"]
+---
+
+## RDS High Availability
+
+Amazon RDS provides two key resilience features: **Multi-AZ** for availability and **Read Replicas** for scalability (and cross-region DR).
+
+## RDS Multi-AZ
+
+**Multi-AZ** deploys a **synchronous standby replica** in a different AZ. This is a HIGH AVAILABILITY feature, not a performance feature.
+
+**How it works:**
+- Primary RDS instance handles all reads and writes
+- AWS synchronously replicates data to the standby instance in another AZ
+- No manual failover needed — AWS detects failure and automatically promotes standby
+- Your connection string points to the **endpoint DNS name**, which Route 53 switches to the standby
+
+**Failover triggers:**
+- Primary instance failure
+- Primary AZ outage
+- OS-level patching on primary
+- DB instance type change
+
+**Failover time**: ~1-2 minutes (DNS TTL change + new instance becomes primary).
+
+**Multi-AZ does NOT:**
+- Improve read performance (standby is not readable)
+- Reduce costs
+- Protect against human error (data deleted on primary is instantly deleted on standby)
+
+<ExamTip>
+Multi-AZ is **automatic failover** for availability. Read Replicas are for **read scaling**. Confusing them is a common exam mistake. "Automatic failover if the primary fails" → Multi-AZ.
+</ExamTip>
+
+## RDS Read Replicas
+
+**Read Replicas** are asynchronously replicated copies of your database, used to offload read traffic.
+
+**Key facts:**
+- Up to 15 read replicas (RDS has fewer, Aurora has up to 15)
+- **Asynchronous replication** — small lag possible (replicas may be slightly behind primary)
+- Read replicas are readable (unlike Multi-AZ standby)
+- Each read replica has its own endpoint — application must know to route reads there
+- Can be in the same AZ, different AZ, or **different region** (cross-region replicas)
+
+**Use cases:**
+- Read-heavy workloads: 80% reads → point reporting to read replicas
+- Analytics queries without impacting production database
+- **Cross-region disaster recovery**: Promote a read replica in another region to primary
+
+**Promotion**: A read replica can be manually promoted to become an independent standalone database (primary). This is irreversible and breaks replication.
+
+## Multi-AZ vs. Read Replicas
+
+<ComparisonTable
+  headers={["Feature", "Multi-AZ", "Read Replica"]}
+  rows={[
+    ["Purpose", "High availability, automatic failover", "Read scaling, DR"],
+    ["Replication", "Synchronous (no data loss)", "Asynchronous (potential lag)"],
+    ["Readable?", "No (standby only)", "Yes (read queries)"],
+    ["Regions", "Same region, different AZ", "Same or different region"],
+    ["Failover", "Automatic", "Manual promotion"],
+    ["Cost", "~2x primary cost", "Same as instance cost"],
+    ["Use case", "Production HA", "Read performance, cross-region DR"],
+  ]}
+/>
+
+## Amazon Aurora
+
+**Aurora** is AWS's cloud-optimized relational database, compatible with MySQL and PostgreSQL. It provides superior HA compared to standard RDS.
+
+### Aurora Architecture
+
+Aurora separates compute from storage:
+- **6 copies of data** spread across **3 AZs** automatically
+- Peer-to-peer replication to handle failures
+- Write quorum: 4 out of 6 copies
+- Read quorum: 3 out of 6 copies
+- Can tolerate: 2 copy failures for writes, 3 for reads
+
+**Aurora storage auto-grows** from 10 GB to 128 TB automatically — no need to provision storage upfront.
+
+### Aurora Endpoints
+
+Aurora provides multiple endpoints:
+
+| Endpoint | Routes to | Use for |
+|---|---|---|
+| **Cluster endpoint** | Primary instance | Writes |
+| **Reader endpoint** | All read replicas (load balanced) | Reads |
+| **Instance endpoint** | Specific instance | Direct instance access (rare) |
+| **Custom endpoint** | Subset of instances you define | Analytics queries to bigger instances |
+
+### Aurora Auto Scaling
+
+Aurora Replicas can **auto-scale** — Aurora automatically adds/removes read replicas based on CPU or connection count. The reader endpoint always points to available replicas.
+
+### Aurora Global Database
+
+**Aurora Global Database** is designed for globally distributed applications:
+- One primary region (reads and writes)
+- Up to 5 secondary regions (reads only)
+- Replication latency: under 1 second
+- If primary region fails: promote a secondary region in under 1 minute (RPO ~1 second)
+
+This is the best option for global applications requiring cross-region failover with minimal data loss.
+
+### Aurora Serverless
+
+**Aurora Serverless v2** automatically scales compute capacity up and down based on demand:
+- Scales in fine-grained increments (0.5 ACU steps)
+- Scales down to minimum capacity (not zero for v2)
+- Good for: variable workloads, development/test environments
+
+### Aurora Backup
+
+- **Automated backups**: 1-35 days retention, point-in-time recovery (PITR)
+- **Manual snapshots**: Retained indefinitely until deleted
+- **Backtrack**: Roll back the entire database cluster to a specific time without restoring from backup (within a defined window, only for Aurora MySQL)
+
+## Multi-AZ + Read Replica Together
+
+For maximum resilience, use BOTH:
+
+```
+Primary (Multi-AZ enabled)
+    ├── Synchronous standby (same region, different AZ) ← automatic failover
+    ├── Read Replica 1 (same region) ← read scaling
+    └── Read Replica 2 (another region) ← cross-region DR
+```
+
+## Summary
+
+- **Multi-AZ**: Synchronous standby, automatic failover, same region, NOT readable. For HA.
+- **Read Replicas**: Asynchronous, readable, same or cross-region. For read scaling and DR.
+- **Aurora**: 6 copies across 3 AZs, cluster/reader endpoints, auto-scaling replicas.
+- **Aurora Global Database**: Cross-region with <1 sec replication. Sub-minute failover.
+- **Aurora Serverless v2**: Auto-scales compute based on demand. Variable workloads.

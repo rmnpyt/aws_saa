@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --surface: 248 250 252;
+    --border: 226 232 240;
+    --text: 15 23 42;
+    --text-muted: 100 116 139;
+  }
+
+  .dark {
+    --background: 15 23 42;
+    --surface: 30 41 59;
+    --border: 51 65 85;
+    --text: 241 245 249;
+    --text-muted: 148 163 184;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 antialiased;
+  }
+
+  * {
+    @apply border-slate-200 dark:border-slate-700;
+  }
+}
+
+@layer components {
+  .domain-badge-0 { @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+  .domain-badge-1 { @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300; }
+  .domain-badge-2 { @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
+  .domain-badge-3 { @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300; }
+  .domain-badge-4 { @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300; }
+
+  .domain-border-1 { @apply border-l-4 border-blue-500; }
+  .domain-border-2 { @apply border-l-4 border-green-500; }
+  .domain-border-3 { @apply border-l-4 border-purple-500; }
+  .domain-border-4 { @apply border-l-4 border-amber-500; }
+
+  .lesson-card {
+    @apply rounded-xl border bg-white dark:bg-slate-800 p-5 hover:shadow-md transition-shadow cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-aws-orange hover:bg-aws-orange-dark text-white font-semibold px-4 py-2 rounded-lg transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-4 py-2 rounded-lg transition-colors;
+  }
+}
+
+/* Flashcard flip animation */
+.flashcard-container {
+  perspective: 1000px;
+}
+
+.flashcard-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}
+
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+}
+
+/* Code blocks in MDX */
+pre {
+  @apply rounded-lg bg-slate-900 dark:bg-slate-950 p-4 overflow-x-auto text-sm;
+}
+
+pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Reading progress */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: #FF9900;
+  z-index: 100;
+  transition: width 0.1s;
+}

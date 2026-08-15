@@ -1,0 +1,11 @@
+{
+  "id": "module-2",
+  "slug": "module-2-resilience",
+  "title": "Domain 2: Design Resilient Architectures",
+  "shortTitle": "Resilience",
+  "domain": 2,
+  "weight": 26,
+  "description": "Disaster recovery strategies, load balancing, auto scaling, event-driven patterns with SQS/SNS, containers, and serverless compute.",
+  "color": "#16A34A",
+  "estimatedHours": 12
+}

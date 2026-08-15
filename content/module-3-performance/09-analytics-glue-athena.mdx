@@ -1,0 +1,158 @@
+---
+title: "Analytics: Athena, Glue & Redshift"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "analytics-glue-athena"
+order: 9
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["athena", "glue", "redshift", "analytics", "data-lake", "etl"]
+services: ["Amazon Athena", "AWS Glue", "Amazon Redshift", "Amazon OpenSearch"]
+---
+
+## Data Analytics on AWS Overview
+
+AWS provides a complete analytics stack from raw data to business insights:
+
+```
+Raw data (S3, databases, logs)
+    ↓ ETL/Transformation (Glue)
+Data lake (S3 in Parquet/ORC format)
+    ↓ Query (Athena) or Load (Redshift)
+Analysis & Visualization (QuickSight, Redshift, OpenSearch)
+```
+
+## Amazon Athena
+
+**Athena** is a serverless, interactive query service that lets you analyze data in S3 using standard SQL.
+
+**How it works:**
+- Data lives in S3 (CSV, JSON, Parquet, ORC, Avro)
+- Athena runs SQL queries directly against S3
+- No data loading required — schema-on-read
+- Pay per query: $5 per TB of data scanned
+
+**Performance and cost optimization:**
+- **Use columnar formats** (Parquet, ORC) — Athena scans only needed columns, reducing scanned data by 70-90%
+- **Use partitioning** — partition by date/region so Athena scans only relevant partitions
+- **Compress data** — GZIP, Snappy reduce data scanned and cost
+- **Glue Data Catalog** as the schema registry for Athena
+
+**Common use case**: Analyze ALB access logs, CloudTrail logs, VPC Flow Logs stored in S3:
+
+```sql
+SELECT clientip, count(*) as requests
+FROM alb_logs
+WHERE year='2024' AND month='01' AND status='500'
+GROUP BY clientip
+ORDER BY requests DESC
+LIMIT 10;
+```
+
+## AWS Glue
+
+**Glue** is a fully managed ETL (Extract, Transform, Load) service and metadata catalog.
+
+### Glue Data Catalog
+
+The **Glue Data Catalog** is a central metadata repository:
+- Stores table definitions, schema, location (S3 path)
+- Used by Athena, Redshift Spectrum, EMR, and other services
+- One catalog per region, per account
+
+**Glue Crawlers**: Automatically scan data sources (S3, RDS, DynamoDB) and create/update table definitions in the catalog.
+
+### Glue ETL Jobs
+
+Write PySpark or Scala code (or use Glue Studio's no-code visual interface) to:
+- Transform raw data (CSV → Parquet, clean nulls, enrich with lookups)
+- Join datasets
+- Deduplicate records
+- Load transformed data to S3, Redshift, or RDS
+
+**Glue Job Bookmarks**: Track which data has been processed, allowing incremental processing.
+
+**Glue Streaming**: Process streaming data from Kinesis or Kafka in real time (not just batch files).
+
+### AWS Glue DataBrew
+
+**DataBrew** is a visual data preparation tool (no code):
+- 250+ built-in transformations
+- Profile data quality, detect anomalies
+- Publish recipes for reuse
+
+## Amazon Redshift
+
+**Redshift** is a fully managed, petabyte-scale cloud data warehouse. Designed for OLAP (analytical queries), not OLTP.
+
+**Key characteristics:**
+- **Columnar storage**: Analytical queries typically access few columns across many rows — columnar format is ideal
+- **Massively Parallel Processing (MPP)**: Queries run in parallel across multiple nodes
+- **Scale**: Petabytes of data, thousands of concurrent queries
+- **Redshift Spectrum**: Query S3 data directly from Redshift without loading it
+
+### Redshift Architecture
+
+| Component | Role |
+|---|---|
+| **Leader node** | Parses queries, creates execution plan, coordinates workers |
+| **Compute nodes** | Execute query in parallel, store data slices |
+| **Slices** | Sub-partitions of a compute node. Each slice processes a portion of the data. |
+
+**Node types:**
+- **RA3**: Decoupled storage (data in S3, compute separate) — scales compute and storage independently
+- **DC2**: Dense compute (local SSD storage) — fast for fixed datasets
+
+### Redshift Serverless
+
+**Redshift Serverless** provisions automatically based on query demand:
+- Pay per Redshift Processing Unit (RPU)-second
+- Scales to zero when not in use
+- Good for intermittent analytics workloads
+
+### Distribution Styles
+
+How Redshift distributes data across nodes:
+- **AUTO**: Redshift decides (recommended)
+- **EVEN**: Round-robin across nodes (balanced distribution)
+- **KEY**: Rows with same key value go to the same node (good for joins on that key)
+- **ALL**: Copy entire table to all nodes (for small dimension tables)
+
+## Amazon OpenSearch Service
+
+**OpenSearch** (formerly Elasticsearch) is a managed search and analytics engine:
+- Ingest logs, clickstream data, time-series data
+- Full-text search (product search, document search)
+- Real-time analytics and dashboards (OpenSearch Dashboards, formerly Kibana)
+- Log analytics (combined with CloudWatch Logs, Kinesis Firehose)
+
+**Common architecture**: Kinesis Firehose → OpenSearch (ingest streaming logs in near real-time for search/dashboard).
+
+## Analytics Service Selection
+
+| Need | Service |
+|---|---|
+| Ad-hoc SQL queries on S3 data | Athena |
+| ETL pipeline (transform, clean, load) | Glue |
+| Data warehouse (petabyte-scale BI) | Redshift |
+| Full-text search + log analytics | OpenSearch |
+| Business intelligence dashboards | QuickSight |
+| Stream processing SQL | Kinesis Data Analytics |
+
+## Amazon QuickSight
+
+**QuickSight** is AWS's managed business intelligence (BI) service:
+- Connect to Athena, Redshift, S3, RDS, Salesforce, and more
+- Create interactive dashboards and visualizations
+- Pay per user per month (no server to manage)
+- **ML Insights**: Automatic anomaly detection, forecasting, narrative summaries
+
+## Summary
+
+- **Athena**: Serverless SQL on S3. $5/TB scanned. Use Parquet + partitions to minimize cost.
+- **Glue**: ETL service. Crawlers auto-discover schema. Jobs transform data. Catalog stores metadata.
+- **Redshift**: Data warehouse for petabyte-scale analytical queries. Columnar, MPP.
+- **OpenSearch**: Search and log analytics. Text search + dashboards.
+- **QuickSight**: BI dashboards. Pay per user, connects to all AWS data sources.

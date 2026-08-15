@@ -1,0 +1,11 @@
+{
+  "id": "module-0",
+  "slug": "module-0-foundations",
+  "title": "Foundations & Prerequisites",
+  "shortTitle": "Foundations",
+  "domain": 0,
+  "weight": 0,
+  "description": "Cloud computing basics, AWS global infrastructure, networking fundamentals, and the Well-Architected Framework. No prior experience needed.",
+  "color": "#64748B",
+  "estimatedHours": 8
+}

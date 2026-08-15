@@ -1,0 +1,364 @@
+[
+  {
+    "id": "perf001",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company runs a read-heavy e-commerce website. Database queries are slow during peak traffic. Which solution would MOST effectively reduce database load and improve read performance?",
+    "options": [
+      {"id": "A", "text": "Upgrade the RDS instance to a larger instance type"},
+      {"id": "B", "text": "Add Amazon ElastiCache (Redis) as a caching layer in front of the database"},
+      {"id": "C", "text": "Enable RDS Multi-AZ deployment"},
+      {"id": "D", "text": "Switch from gp2 to io2 storage for the RDS instance"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "ElastiCache Redis caches frequently read data in memory, serving subsequent requests in sub-millisecond time without hitting the database. This dramatically reduces database load for read-heavy workloads.",
+      "perOption": {
+        "A": "Upgrading the instance type increases capacity but is expensive and doesn't fundamentally change the read pattern. Caching has a much higher impact.",
+        "B": "CORRECT. Caching with Redis eliminates database queries for frequently accessed data. A 90% cache hit rate means only 10% of requests reach the database, dramatically improving both performance and cost.",
+        "C": "Multi-AZ provides HA but doesn't improve read performance. The standby is not readable.",
+        "D": "Changing storage to io2 improves IOPS but doesn't reduce the number of queries hitting the database."
+      }
+    }
+  },
+  {
+    "id": "perf002",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company uploads large video files (50 GB each) to Amazon S3 from users worldwide. Users frequently report slow upload speeds. Which S3 feature should be enabled to improve upload performance?",
+    "options": [
+      {"id": "A", "text": "S3 Intelligent-Tiering"},
+      {"id": "B", "text": "S3 Transfer Acceleration"},
+      {"id": "C", "text": "S3 Versioning"},
+      {"id": "D", "text": "S3 Cross-Region Replication"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "S3 Transfer Acceleration routes uploads through the nearest CloudFront edge location, then transfers via AWS's optimized global backbone to the S3 bucket. This significantly improves upload speeds for users far from the bucket's region.",
+      "perOption": {
+        "A": "Intelligent-Tiering moves objects between storage classes based on access patterns. It doesn't affect upload speed.",
+        "B": "CORRECT. Transfer Acceleration uses CloudFront edge locations globally to accelerate uploads. Users upload to their nearest edge location, and AWS's backbone carries the data to S3. Ideal for large objects from worldwide locations.",
+        "C": "Versioning maintains multiple versions of objects but doesn't improve upload speed.",
+        "D": "Cross-Region Replication copies objects to another region after upload. It doesn't speed up the initial upload."
+      }
+    }
+  },
+  {
+    "id": "perf003",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company serves a global web application with static content (images, CSS, JavaScript). Users in Asia and Europe experience high latency accessing content hosted in us-east-1. Which solution minimizes latency?",
+    "options": [
+      {"id": "A", "text": "Deploy EC2 instances in us-east-1 with Elastic IPs for each region"},
+      {"id": "B", "text": "Use Amazon CloudFront to cache content at edge locations near users"},
+      {"id": "C", "text": "Enable S3 Cross-Region Replication to copy data to Asian and European buckets"},
+      {"id": "D", "text": "Use AWS Global Accelerator with us-east-1 as the endpoint"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "CloudFront caches content at 400+ edge locations worldwide. Asian and European users receive content from their nearest edge location with millisecond latency instead of crossing the ocean to us-east-1.",
+      "perOption": {
+        "A": "EC2 instances with Elastic IPs in us-east-1 doesn't change latency — all traffic still goes to the same region.",
+        "B": "CORRECT. CloudFront is a CDN that caches static content at edge locations close to users. After the first request, subsequent requests are served from the edge, eliminating cross-ocean latency.",
+        "C": "CRR copies data to S3 in another region, but users would need to know which bucket to access. CloudFront handles the routing automatically.",
+        "D": "Global Accelerator routes traffic to your application over AWS's backbone but doesn't cache content. It would reduce latency for dynamic content but isn't optimized for static content caching like CloudFront."
+      }
+    }
+  },
+  {
+    "id": "perf004",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "A company uses Amazon DynamoDB for a gaming leaderboard. The table has millions of items and needs to return the top 100 players sorted by score. The primary key is player_id. How should the architect design this?",
+    "options": [
+      {"id": "A", "text": "Scan the entire table, sort in the application, and return the top 100"},
+      {"id": "B", "text": "Create a Global Secondary Index with a fixed partition key and score as the sort key"},
+      {"id": "C", "text": "Use DynamoDB Query with a FilterExpression on the score attribute"},
+      {"id": "D", "text": "Migrate to Amazon RDS for better sorting capabilities"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "A GSI with a static/fixed partition key (e.g., 'LEADERBOARD') and score as the sort key allows efficient retrieval of top scores using Query with ScanIndexForward=false. DynamoDB Redis sorted sets are another approach, but GSI is native DynamoDB.",
+      "perOption": {
+        "A": "Scanning millions of items for every leaderboard request is extremely expensive and slow. This would consume massive read capacity.",
+        "B": "CORRECT. A GSI with partition key='LEADERBOARD' (constant value for all leaderboard items) and sort key=score allows efficient querying of top scores using the Query API, which returns items in sorted order by score.",
+        "C": "FilterExpression doesn't use an index — it scans and then filters. This is expensive for millions of items.",
+        "D": "Migrating databases is a major change and usually not the right answer. The design can be optimized within DynamoDB."
+      }
+    }
+  },
+  {
+    "id": "perf005",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to store 5 TB of files that will be simultaneously accessed by 500 Linux EC2 instances. Files are large log files that multiple instances write to and read from concurrently. Which storage solution is most appropriate?",
+    "options": [
+      {"id": "A", "text": "An EBS volume attached to a single EC2 instance with NFS server software installed"},
+      {"id": "B", "text": "Amazon EFS (Elastic File System)"},
+      {"id": "C", "text": "S3 with a FUSE mount on each EC2 instance"},
+      {"id": "D", "text": "An EBS Multi-Attach volume shared across all instances"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon EFS is a managed NFS file system that can be mounted simultaneously by thousands of EC2 instances. It automatically scales and handles concurrent access, making it perfect for this shared file access pattern.",
+      "perOption": {
+        "A": "A self-managed NFS server on EC2 would work but creates a single point of failure and operational overhead. EFS is the managed solution.",
+        "B": "CORRECT. EFS is designed for exactly this use case — shared file access from thousands of Linux EC2 instances simultaneously. It scales automatically and handles concurrent reads/writes.",
+        "C": "S3 via FUSE mount works but has limitations — it's object storage, not a true file system. Concurrent writes to the same 'file' don't work well.",
+        "D": "EBS Multi-Attach is limited to 16 instances in the same AZ and requires a cluster-aware file system. It doesn't scale to 500 instances across multiple AZs."
+      }
+    }
+  },
+  {
+    "id": "perf006",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company is building a machine learning pipeline that trains models on large datasets stored in S3. The training jobs need extremely high throughput file I/O (hundreds of GB/s). Which file system should be attached to the training cluster?",
+    "options": [
+      {"id": "A", "text": "Amazon EFS in Max I/O performance mode"},
+      {"id": "B", "text": "Amazon EBS io2 volumes in RAID 0 configuration"},
+      {"id": "C", "text": "Amazon FSx for Lustre with the S3 bucket as the data repository"},
+      {"id": "D", "text": "Amazon S3 accessed directly via the AWS SDK"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "FSx for Lustre is a high-performance parallel file system designed for HPC and ML workloads. It can deliver hundreds of GB/s throughput and millions of IOPS. It natively integrates with S3, loading data into the file system on demand.",
+      "perOption": {
+        "A": "EFS Max I/O mode provides higher throughput than General Purpose mode but significantly less than FSx for Lustre's hundreds of GB/s.",
+        "B": "EBS RAID 0 can achieve high IOPS but is limited to a single instance and doesn't integrate natively with S3.",
+        "C": "CORRECT. FSx for Lustre is specifically designed for HPC and ML training workloads requiring extreme performance. It integrates with S3 as a data repository, allowing fast access to large datasets.",
+        "D": "Direct S3 SDK access works but is limited by S3's request latency (milliseconds per request) and doesn't achieve the throughput of a purpose-built HPC file system."
+      }
+    }
+  },
+  {
+    "id": "perf007",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company has an ad-hoc analytics team that needs to run SQL queries on log files stored in Amazon S3. The files are in CSV format. The team doesn't want to manage any database infrastructure. Which service is most appropriate?",
+    "options": [
+      {"id": "A", "text": "Amazon Redshift with S3 as the data source"},
+      {"id": "B", "text": "Amazon Athena"},
+      {"id": "C", "text": "Amazon RDS with S3 integration"},
+      {"id": "D", "text": "Amazon EMR with Hive"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Amazon Athena is serverless — no infrastructure to manage. It queries data directly in S3 using standard SQL and charges only for data scanned. Perfect for ad-hoc analytics teams.",
+      "perOption": {
+        "A": "Redshift is a data warehouse that requires provisioning and managing clusters. Data typically needs to be loaded into Redshift, adding complexity.",
+        "B": "CORRECT. Athena is serverless SQL on S3. No infrastructure to set up or manage. Pay per query ($5/TB scanned). Works with CSV, JSON, Parquet, ORC.",
+        "C": "RDS is a managed relational database and isn't designed to query S3 data directly as a primary source.",
+        "D": "EMR with Hive works but requires provisioning and managing an EMR cluster. It's more complex and expensive than Athena for ad-hoc queries."
+      }
+    }
+  },
+  {
+    "id": "perf008",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's Lambda function accesses an RDS database. During high traffic, hundreds of Lambda invocations create hundreds of database connections simultaneously, causing the database to run out of connections. Which solution addresses this?",
+    "options": [
+      {"id": "A", "text": "Increase the max_connections setting on the RDS instance"},
+      {"id": "B", "text": "Use Amazon RDS Proxy between Lambda and RDS"},
+      {"id": "C", "text": "Move to DynamoDB which has no connection limits"},
+      {"id": "D", "text": "Implement exponential backoff retry logic in the Lambda function"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "RDS Proxy pools and reuses database connections. It maintains a pool of connections to RDS and multiplexes thousands of Lambda connection requests through a much smaller set of actual database connections.",
+      "perOption": {
+        "A": "Increasing max_connections helps but has limits (connection overhead impacts database performance). It doesn't solve the fundamental connection management problem with Lambda.",
+        "B": "CORRECT. RDS Proxy is specifically designed to solve the Lambda + RDS connection pooling problem. It maintains a pool of connections to RDS and manages them efficiently, regardless of how many Lambda invocations run concurrently.",
+        "C": "Switching databases is a major change. The question asks for a solution that works with the existing RDS setup.",
+        "D": "Retry logic reduces error impact but doesn't solve the root problem of too many database connections."
+      }
+    }
+  },
+  {
+    "id": "perf009",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company needs to provide consistent, low-latency (microsecond) reads from a DynamoDB table that stores product catalog data. The data changes infrequently. Which solution provides the best read performance?",
+    "options": [
+      {"id": "A", "text": "Enable DynamoDB Streams"},
+      {"id": "B", "text": "Use DynamoDB Accelerator (DAX)"},
+      {"id": "C", "text": "Enable DynamoDB strongly consistent reads"},
+      {"id": "D", "text": "Create a Global Secondary Index on the product catalog"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "DAX is an in-memory cache for DynamoDB that reduces read latency from milliseconds to microseconds. For frequently read, infrequently changing data like a product catalog, DAX provides dramatic performance improvement.",
+      "perOption": {
+        "A": "DynamoDB Streams captures change events for downstream processing. It doesn't improve read performance.",
+        "B": "CORRECT. DAX is purpose-built for DynamoDB caching, providing microsecond latency for cached reads. The product catalog (infrequently changing data) is an ideal use case.",
+        "C": "Strongly consistent reads reduce latency variability but don't achieve microsecond performance. They consume 2x the capacity units.",
+        "D": "GSIs enable querying on non-primary key attributes but don't reduce latency to microseconds."
+      }
+    }
+  },
+  {
+    "id": "perf010",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "A company runs computationally intensive genomics processing jobs that take 24 hours to complete on a single EC2 instance. They want to reduce this to 2 hours. The job can be parallelized across many nodes, and each node needs to communicate with others. Which EC2 configuration provides the best inter-node communication performance?",
+    "options": [
+      {"id": "A", "text": "c5.xlarge instances in a Spread Placement Group"},
+      {"id": "B", "text": "p4d.24xlarge instances with EFA in a Cluster Placement Group"},
+      {"id": "C", "text": "m5.4xlarge instances distributed across multiple AZs"},
+      {"id": "D", "text": "t3.2xlarge instances with Enhanced Networking enabled"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "For tightly coupled HPC workloads needing inter-node communication, Cluster Placement Groups (all instances in one rack) + EFA (Elastic Fabric Adapter, OS-bypass networking) + HPC-optimized instances (p4d or hpc6a) provide maximum inter-node performance.",
+      "perOption": {
+        "A": "c5 is compute-optimized but not HPC-optimized. Spread Placement Group puts instances on separate racks — maximizing distance between nodes, hurting inter-node latency.",
+        "B": "CORRECT. p4d instances have EFA support, and Cluster Placement Groups place all instances in the same physical rack for lowest latency. EFA bypasses the OS network stack for MPI-style communication.",
+        "C": "Distributing across AZs increases inter-node latency significantly. HPC jobs need nodes close together.",
+        "D": "t3 instances are general purpose burstable — not suitable for sustained compute. Enhanced Networking is good but EFA provides OS-bypass for HPC."
+      }
+    }
+  },
+  {
+    "id": "perf011",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to move 100 TB of data from their on-premises data center to Amazon S3 as quickly as possible. The data center has a 1 Gbps internet connection. Which data transfer method is fastest?",
+    "options": [
+      {"id": "A", "text": "AWS DataSync over the existing internet connection"},
+      {"id": "B", "text": "Amazon S3 Transfer Acceleration"},
+      {"id": "C", "text": "AWS Snowball Edge Storage Optimized device"},
+      {"id": "D", "text": "AWS Direct Connect with 1 Gbps port"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "100 TB over a 1 Gbps connection would take approximately 9 days (at 100% utilization, never achieved in practice). A Snowball Edge device can be physically shipped, loaded with 100 TB in days, and then shipped back to AWS for upload — much faster than the internet.",
+      "perOption": {
+        "A": "DataSync over the 1 Gbps internet connection would theoretically take 9+ days at perfect utilization, but real-world transfers take much longer.",
+        "B": "Transfer Acceleration uses CloudFront edge nodes but still sends data over the internet. Not faster than the physical data transfer option for 100 TB.",
+        "C": "CORRECT. Snowball Edge holds 80 TB per device. With 2 devices, you can load and ship 100 TB. Physical shipping + loading is typically 1-2 weeks total, often faster than internet transfer.",
+        "D": "Direct Connect at 1 Gbps provides consistent bandwidth but the same transfer time as the existing internet connection (both are 1 Gbps). It's also slow to provision (weeks)."
+      }
+    }
+  },
+  {
+    "id": "perf012",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A gaming company needs to provide real-time multiplayer gaming with sub-10ms latency between players across the globe. The game uses UDP protocol. Which service routes game traffic most efficiently?",
+    "options": [
+      {"id": "A", "text": "Amazon CloudFront"},
+      {"id": "B", "text": "Amazon Route 53 with latency-based routing"},
+      {"id": "C", "text": "AWS Global Accelerator"},
+      {"id": "D", "text": "Amazon API Gateway with Edge-Optimized endpoint"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "AWS Global Accelerator routes UDP traffic through the AWS global network from the nearest edge location. This significantly reduces latency compared to routing over the public internet. CloudFront doesn't support UDP.",
+      "perOption": {
+        "A": "CloudFront is a CDN that caches HTTP/HTTPS content. It does NOT support UDP protocol, which gaming requires.",
+        "B": "Route 53 latency routing optimizes DNS resolution but doesn't route the actual game traffic. The game packets still travel over the public internet.",
+        "C": "CORRECT. Global Accelerator supports any TCP and UDP traffic. It routes packets from the nearest edge location over AWS's backbone network, providing consistent sub-10ms improvement over public internet routing.",
+        "D": "API Gateway is for HTTP APIs and doesn't support UDP game traffic."
+      }
+    }
+  },
+  {
+    "id": "perf013",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company runs an Aurora MySQL database with one writer and two read replicas. The analytics team runs complex queries that take hours and slow down the application. How should the architect separate analytics workload from the production workload?",
+    "options": [
+      {"id": "A", "text": "Add more read replicas to distribute the analytics load"},
+      {"id": "B", "text": "Create an Aurora custom endpoint that routes analytics queries to specific, larger read replica instances"},
+      {"id": "C", "text": "Enable Aurora Parallel Query to distribute query processing"},
+      {"id": "D", "text": "Move analytics to Amazon Redshift using AWS DMS"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Aurora custom endpoints allow you to route queries to specific replica instances. You can create a custom endpoint pointing to larger (r5.4xlarge) replicas for analytics and keep the regular reader endpoint for application traffic on smaller replicas.",
+      "perOption": {
+        "A": "Adding more replicas distributes the load but doesn't isolate analytics from affecting production replicas.",
+        "B": "CORRECT. Custom endpoints let you designate specific instances for specific workloads. Analytics team uses the custom endpoint (larger instances), production uses the reader endpoint (standard instances). Complete isolation.",
+        "C": "Aurora Parallel Query improves query performance by pushing computation to the storage layer, but analytics queries still share the same cluster resources.",
+        "D": "Moving to Redshift is a valid long-term solution but is a major migration. The custom endpoint approach is simpler and doesn't require migrating data."
+      }
+    }
+  },
+  {
+    "id": "perf014",
+    "domain": 3,
+    "taskStatement": "3.1",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company stores backups in Amazon S3. They use AWS Athena to run queries against these backups. The backups are stored in CSV format. The data analysts notice that Athena queries are expensive and slow. What is the MOST effective optimization?",
+    "options": [
+      {"id": "A", "text": "Enable S3 Transfer Acceleration"},
+      {"id": "B", "text": "Convert CSV files to Parquet format and enable S3 partitioning"},
+      {"id": "C", "text": "Move data to Amazon Redshift for better query performance"},
+      {"id": "D", "text": "Enable S3 Intelligent-Tiering"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Parquet is a columnar format that allows Athena to scan only the needed columns instead of the entire row (like CSV). Combined with partitioning (e.g., by year/month), Athena only scans the relevant partitions. This typically reduces scanned data by 70-99%, dramatically cutting both cost and query time.",
+      "perOption": {
+        "A": "Transfer Acceleration speeds up uploads to S3, not Athena queries on S3 data.",
+        "B": "CORRECT. Columnar format (Parquet/ORC) reduces data scanned by skipping irrelevant columns. Partitioning lets Athena skip irrelevant partitions. Combined, they can reduce query cost and time by orders of magnitude.",
+        "C": "Moving to Redshift requires loading data, managing clusters, and significantly more cost for the infrastructure.",
+        "D": "Intelligent-Tiering moves objects between storage classes based on access. It doesn't affect query performance."
+      }
+    }
+  },
+  {
+    "id": "perf015",
+    "domain": 3,
+    "taskStatement": "3.2",
+    "difficulty": "medium",
+    "type": "multiple-response",
+    "question": "A company wants to minimize latency for their Lambda function that processes DynamoDB reads and must respond to API Gateway requests in under 5ms. Which TWO optimizations help the most?",
+    "options": [
+      {"id": "A", "text": "Use Provisioned Concurrency to eliminate Lambda cold starts"},
+      {"id": "B", "text": "Add DynamoDB DAX in front of DynamoDB"},
+      {"id": "C", "text": "Enable SQS integration between API Gateway and Lambda"},
+      {"id": "D", "text": "Increase Lambda memory to maximum (10 GB)"},
+      {"id": "E", "text": "Switch from DynamoDB to RDS for better query performance"}
+    ],
+    "correctAnswers": ["A", "B"],
+    "explanation": {
+      "correct": "Provisioned Concurrency eliminates cold starts (which can add 100ms-1s). DAX provides microsecond DynamoDB reads instead of millisecond reads. Together, these address the two biggest latency sources.",
+      "perOption": {
+        "A": "CORRECT. Lambda cold starts add significant latency (100ms to 1s+). Provisioned Concurrency keeps Lambda instances warm so there's no cold start latency.",
+        "B": "CORRECT. DynamoDB normally responds in milliseconds. DAX reduces this to microseconds by caching reads in memory. For a 5ms total budget, sub-millisecond DB reads are crucial.",
+        "C": "SQS between API Gateway and Lambda creates an asynchronous pattern — the client doesn't wait for Lambda to complete. This would not work for synchronous API calls.",
+        "D": "Increasing memory does increase CPU proportionally, but 10 GB maximum memory is excessive and expensive. Moderate memory increase may help but is not as impactful as the other options.",
+        "E": "RDS reads take milliseconds (similar to DynamoDB without DAX). This doesn't solve the latency problem and is a major migration."
+      }
+    }
+  }
+]

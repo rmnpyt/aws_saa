@@ -1,0 +1,157 @@
+---
+title: "EC2 Auto Scaling"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "auto-scaling"
+order: 3
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["auto-scaling", "asg", "launch-template", "scaling-policy", "ec2"]
+services: ["Amazon EC2 Auto Scaling", "AWS Auto Scaling"]
+---
+
+## Why Auto Scaling?
+
+Static infrastructure wastes money during low-traffic periods and fails during traffic spikes. **EC2 Auto Scaling** automatically adds instances when demand rises and removes them when demand falls:
+
+- **Availability**: Replace failed instances automatically
+- **Cost**: Run fewer instances during off-peak hours
+- **Performance**: Scale out before hitting capacity limits
+
+## Auto Scaling Group (ASG)
+
+An **Auto Scaling Group (ASG)** is a collection of EC2 instances managed as a group with shared configuration.
+
+**Core settings:**
+
+| Setting | Description |
+|---|---|
+| **Minimum capacity** | Fewest instances the ASG will ever have |
+| **Desired capacity** | Target number of instances (ASG tries to maintain this) |
+| **Maximum capacity** | Most instances the ASG will ever have |
+| **Launch Template** | Defines how to launch instances (AMI, instance type, security groups, user data) |
+| **VPC Subnets** | Which subnets to launch into (spread across AZs for HA) |
+
+**AZ balancing**: ASG automatically balances instances across configured AZs. If AZ-1 has more instances than AZ-2, ASG will terminate from AZ-1 first when scaling in.
+
+## Launch Templates (vs. Launch Configurations)
+
+**Launch Templates** (preferred) and **Launch Configurations** (legacy) define the EC2 instance configuration:
+- AMI ID
+- Instance type
+- Key pair
+- Security groups
+- IAM instance profile
+- User data (bootstrap script)
+- EBS volume configuration
+
+**Launch Templates are preferred** — they support versioning, inheritance, and can specify multiple instance types (for Spot).
+
+## Scaling Policies
+
+How does the ASG know when to scale?
+
+### 1. Manual Scaling
+Set desired capacity directly. Used for planned events.
+
+### 2. Scheduled Scaling
+Scale at a specific time. 
+```
+Every weekday at 9am: set desired = 10
+Every weekday at 7pm: set desired = 2
+```
+
+### 3. Dynamic Scaling — Target Tracking
+The simplest and most recommended policy. Set a target metric value and ASG scales to maintain it.
+
+```
+Target: CPU utilization = 50%
+ASG will add instances if CPU > 50%, remove if CPU < 50%
+```
+
+Common metrics: `ASGAverageCPUUtilization`, `ALBRequestCountPerTarget`, `ASGAverageNetworkIn`.
+
+### 4. Dynamic Scaling — Step Scaling
+Different actions for different alarm thresholds:
+```
+CPU 50-70%: Add 1 instance
+CPU 70-90%: Add 2 instances
+CPU >90%: Add 5 instances
+```
+
+### 5. Predictive Scaling
+Uses ML to forecast traffic based on historical patterns and provisions capacity before demand peaks. Great for cyclical, predictable workloads.
+
+<ExamTip>
+For most scenarios, use **Target Tracking Scaling** — it's self-managing and the exam's preferred answer unless step-by-step control is explicitly needed.
+</ExamTip>
+
+## Cooldown Period
+
+After a scaling event, the ASG waits a **cooldown period** (default 300 seconds) before allowing another scaling action. This prevents rapidly launching or terminating instances before the previous change has time to take effect.
+
+**Warm-up time**: New instances launched during scale-out aren't counted in metrics until their warm-up period ends (so the ASG doesn't scale again thinking the new instances aren't helping yet).
+
+## Instance Termination Policy
+
+When scaling in, which instances does ASG terminate first? Default policy:
+
+1. AZ with the most instances (for balance)
+2. Oldest launch template/configuration
+3. Closest to the next billing hour (saves money)
+
+You can customize with **termination policies**: OldestInstance, NewestInstance, OldestLaunchTemplate, etc.
+
+## Lifecycle Hooks
+
+**Lifecycle hooks** pause instance launch or termination to run custom actions:
+
+- **Launch hook**: Pause after instance starts, run bootstrap, install software, drain ELB — then continue
+- **Terminate hook**: Pause before termination, save logs, complete processing — then continue
+
+Use with Lambda, SQS, or SNS to trigger actions during lifecycle transitions.
+
+## Mixed Instances Policy
+
+ASG can use multiple instance types and purchase options (On-Demand + Spot) in a single group:
+
+```
+Base: 2 On-Demand t3.medium (always available)
+Additional: 70% Spot, 30% On-Demand (from pool of t3.medium, t3.large, m5.large)
+```
+
+This provides cost savings with Spot while maintaining baseline availability with On-Demand.
+
+## Health Checks
+
+ASG can check instance health using:
+- **EC2 status checks** (default): Instance passes AWS hardware checks
+- **ELB health checks**: Instance passes the load balancer health check (application-level)
+
+Always enable ELB health checks — an instance might be healthy at the EC2 level but failing your application health endpoint.
+
+## Integration with ALB
+
+The typical resilient web tier:
+
+```
+Internet → ALB → Target Group → Auto Scaling Group
+                                  ├── Instance 1 (AZ-a)
+                                  ├── Instance 2 (AZ-a)
+                                  └── Instance 3 (AZ-b)
+```
+
+- ALB distributes traffic and routes around unhealthy instances
+- ASG replaces any instance that fails health checks
+- If AZ-a goes down, ASG launches new instances in AZ-b
+
+## Summary
+
+- **ASG** = managed group of EC2 instances with min/max/desired capacity
+- **Launch Template** = defines how to launch EC2 instances (preferred over launch configurations)
+- **Target Tracking** = simplest scaling policy. Set a target metric, ASG maintains it.
+- **Cooldown period** = prevents rapid chained scaling events
+- Always enable **ELB health checks** for ASG (not just EC2 checks)
+- **Mixed instances policy** = combine On-Demand + Spot for cost optimization

@@ -1,0 +1,149 @@
+---
+title: "S3 Performance & Advanced Features"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "s3-performance"
+order: 3
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["s3", "multipart", "transfer-acceleration", "s3-select", "intelligent-tiering", "lifecycle"]
+services: ["Amazon S3"]
+---
+
+## S3 Performance Baseline
+
+S3 supports extremely high request rates:
+- **3,500 PUT/COPY/POST/DELETE** requests per second per prefix
+- **5,500 GET/HEAD** requests per second per prefix
+
+**Prefix**: Everything between the bucket name and the filename: `bucket/prefix/object.jpg`. Use multiple prefixes (by date, type, etc.) to parallelize across prefix partitions.
+
+## Multipart Upload
+
+**Multipart upload** splits a large object into parts, uploads them in parallel, then reassembles:
+- **Recommended** for objects > 100 MB
+- **Required** for objects > 5 GB
+- Parts can be uploaded in parallel → much faster
+- If one part fails, only that part needs to be retransmitted
+- Incomplete multipart uploads accumulate charges — use lifecycle rules to abort them
+
+## S3 Transfer Acceleration
+
+**S3 Transfer Acceleration** uses CloudFront edge locations to accelerate uploads to S3 from the internet:
+
+```
+Client → Nearest CloudFront Edge Location → AWS backbone → S3 Bucket (in any region)
+```
+
+Speeds up uploads significantly for users far from the bucket's region. You upload to a specific acceleration endpoint:
+`bucket.s3-accelerate.amazonaws.com`
+
+**Use case**: Global uploads to a centralized S3 bucket (e.g., users worldwide uploading files to a US-East bucket).
+
+## Byte-Range Fetches
+
+Download specific byte ranges of a large object in parallel:
+- Fetch parts of a file concurrently → faster downloads for large files
+- Resume interrupted downloads (start from the failed byte range)
+- Read only the first N bytes (e.g., read the header of a video file)
+
+## S3 Select & Glacier Select
+
+**S3 Select** allows you to retrieve a subset of data from an object using SQL-like expressions:
+- The filtering happens on the S3 side — only the matching data is transferred
+- Supports CSV, JSON, Parquet
+- Reduces data transfer and compute costs compared to downloading the whole object
+
+```sql
+SELECT s.name, s.age FROM s3object s WHERE s.age > 30
+```
+
+## S3 Storage Classes (Performance Context)
+
+| Storage Class | Access time | Use case |
+|---|---|---|
+| **S3 Standard** | Milliseconds | Frequently accessed data |
+| **S3 Standard-IA** | Milliseconds | Infrequent access, but fast when needed |
+| **S3 One Zone-IA** | Milliseconds | Infrequent access, one AZ, lower cost |
+| **S3 Glacier Instant Retrieval** | Milliseconds | Archives accessed once a quarter |
+| **S3 Glacier Flexible Retrieval** | Minutes to hours | Long-term archives, expedited/standard/bulk retrieval |
+| **S3 Glacier Deep Archive** | 12 hours | Longest-term archives (7+ years) |
+| **S3 Intelligent-Tiering** | Milliseconds to hours | Unknown or changing access patterns |
+
+**Minimum storage durations:**
+- Standard-IA: 30 days
+- One Zone-IA: 30 days
+- Glacier Instant: 90 days
+- Glacier Flexible: 90 days
+- Glacier Deep Archive: 180 days
+
+Early deletion incurs a pro-rated fee.
+
+## S3 Lifecycle Rules
+
+**Lifecycle rules** automate transitioning objects between storage classes or expiring them:
+
+```
+Rule: "Move to Standard-IA after 30 days of no access"
+Rule: "Move to Glacier Flexible after 90 days"
+Rule: "Delete after 365 days"
+```
+
+Rules can apply to:
+- All objects in a bucket
+- Objects with a specific prefix (`logs/`)
+- Objects with specific tags
+- Previous versions (if versioning is enabled)
+- Incomplete multipart uploads
+
+## S3 Replication (Performance)
+
+**Same-Region Replication (SRR)**: Copies objects to another bucket in the same region.
+- Log aggregation from multiple buckets
+- Dev/test bucket that mirrors production
+
+**Cross-Region Replication (CRR)**: Copies to a bucket in another region.
+- Lower latency for users in another region
+- DR copy
+- Compliance with data residency requirements
+
+**Replication considerations:**
+- Requires versioning on both buckets
+- Replication is asynchronous
+- Only replicates new objects (by default — use Batch Replication for existing objects)
+- Delete markers are NOT replicated by default (optional setting)
+
+## S3 Batch Operations
+
+**S3 Batch Operations** lets you run operations on billions of objects with a single API call:
+- Copy objects between buckets
+- Replace tag sets
+- Restore from Glacier
+- Invoke Lambda function on each object
+- ACL updates
+
+Input: A list of objects (from S3 Inventory or custom CSV).
+
+## S3 Event Notifications
+
+Trigger actions when objects are created, deleted, or restored:
+
+| Destination | Use case |
+|---|---|
+| SQS | Queue uploads for processing |
+| SNS | Notify multiple systems of new uploads |
+| Lambda | Process file immediately on upload |
+| EventBridge | Complex routing rules, archive events |
+
+**EventBridge** is the most flexible (can route to 18+ targets) but adds a small delay. For simple Lambda triggers, use native S3 event notifications.
+
+## Summary
+
+- **Multipart upload**: Required >5 GB, recommended >100 MB. Parallel upload parts.
+- **Transfer Acceleration**: Faster uploads via CloudFront edge network. For globally distributed uploaders.
+- **S3 Select**: Server-side SQL filtering. Only transfer matching data.
+- **Lifecycle rules**: Automatically transition between storage classes and expire old objects.
+- **CRR**: Cross-region replication for DR and latency reduction.
+- Storage class selection: Standard → Standard-IA → Glacier Instant → Glacier Flexible → Deep Archive (cost vs. retrieval speed tradeoff).

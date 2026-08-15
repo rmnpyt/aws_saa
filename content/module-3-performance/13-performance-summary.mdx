@@ -1,0 +1,119 @@
+---
+title: "Domain 3 Performance: Key Patterns & Review"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "performance-summary"
+order: 13
+domain: 3
+taskStatements: ["3.1", "3.2"]
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["review", "cheat-sheet", "performance"]
+services: []
+---
+
+## Domain 3 at a Glance
+
+Domain 3 (Performance) is worth **24% of the SAA-C03 exam**. Questions test your ability to select the right AWS service and configuration to meet performance requirements.
+
+## Storage Performance Decision Tree
+
+```
+Need storage for EC2?
+├── Single instance → EBS
+│   ├── General workloads → gp3 (default)
+│   ├── High IOPS (DBs, trading) → io2
+│   ├── Big sequential reads → st1
+│   └── Temporary/fastest I/O → Instance Store (ephemeral!)
+├── Multiple Linux instances → EFS (NFS, auto-scales)
+├── Multiple Windows instances → FSx for Windows
+├── HPC / ML training from S3 → FSx for Lustre
+└── Object storage (any service) → S3
+```
+
+## Database Performance Selection
+
+| Need | Service | Key feature |
+|---|---|---|
+| Relational, high reads | Aurora + Read Replicas | 15 replicas, auto-scaling |
+| Global relational, <1s replication | Aurora Global Database | Cross-region active-passive |
+| Key-value, millisecond latency | DynamoDB on-demand | Serverless, auto-scale |
+| Key-value, microsecond latency | DynamoDB + DAX | In-memory cache layer |
+| Multi-region active-active NoSQL | DynamoDB Global Tables | Multi-master, sub-second replication |
+| Sub-millisecond cache | ElastiCache Redis | Sessions, leaderboards, rate limiting |
+| Analytics / Data warehouse | Redshift | Columnar, MPP, petabyte scale |
+| Ad-hoc SQL on S3 | Athena | Serverless, $5/TB scanned |
+| Full-text search | OpenSearch | Inverted index, dashboards |
+
+## Compute Performance Selection
+
+| Need | Instance Family |
+|---|---|
+| Variable CPU load | T-family (burstable) |
+| High CPU ratio | C-family |
+| High memory ratio | R-family |
+| HPC / GPU training | P-family |
+| GPU inference | G-family |
+| NVMe local storage | I-family |
+| Tightly coupled HPC | Cluster PG + EFA |
+
+## Content Delivery
+
+| Need | Service |
+|---|---|
+| Cache web content globally | CloudFront |
+| Protect web app at edge | CloudFront + WAF |
+| Accelerate uploads from global users | S3 Transfer Acceleration |
+| Static IP for global app | Global Accelerator |
+| TCP/UDP global routing | Global Accelerator |
+| Private file access (authenticated users) | CloudFront Signed URLs |
+
+## Analytics Pipeline
+
+```
+Raw data (logs, events, clickstream)
+    ↓
+Kinesis Data Streams (real-time ingestion)
+    ↓
+Kinesis Firehose (deliver to S3, buffered)
+    ↓
+S3 (data lake in Parquet format)
+    ↓
+Glue (ETL: clean, transform)
+    ↓
+Athena (ad-hoc SQL) or Redshift (BI queries)
+    ↓
+QuickSight (dashboards)
+```
+
+## Data Migration
+
+| Volume | Solution |
+|---|---|
+| < 1 TB | AWS DataSync over internet |
+| 1 TB – 10 PB | Snowball Edge |
+| > 10 PB | Snowmobile |
+| Ongoing sync | DataSync |
+| On-premises NFS to S3 | Storage Gateway S3 File Gateway |
+
+## Common Exam Traps
+
+1. **S3 is object storage** — cannot be mounted as a file system on EC2 without additional software
+2. **EFS is Linux only** — for Windows shared file access, use FSx for Windows
+3. **Instance Store is ephemeral** — data lost on stop/terminate. Never for durable data.
+4. **DAX is DynamoDB-specific** — cannot be used to cache RDS queries
+5. **Athena cost** — charges per data scanned. Use Parquet + partitions to reduce costs significantly
+6. **Kinesis Firehose has 60-second minimum delay** — not real-time
+7. **CloudFront caches at edge** — reduces origin load. Global Accelerator does NOT cache.
+8. **Read replicas don't auto-promote** — must be promoted manually on primary failure (unlike Multi-AZ which auto-fails over)
+
+## Readiness Checklist
+
+- [ ] Know the EBS volume types and when to use each
+- [ ] Explain why EFS vs. FSx for Windows vs. FSx for Lustre
+- [ ] Design a global web application with low latency using CloudFront
+- [ ] Explain the difference between CloudFront and Global Accelerator
+- [ ] Describe the analytics pipeline from ingestion (Kinesis) to query (Athena/Redshift)
+- [ ] Choose between ElastiCache Redis and Memcached
+- [ ] Know DynamoDB GSI vs. LSI differences
+- [ ] Identify the right Snow device for a given data volume

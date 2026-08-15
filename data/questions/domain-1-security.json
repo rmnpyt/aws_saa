@@ -1,0 +1,486 @@
+[
+  {
+    "id": "sec001",
+    "domain": 1,
+    "taskStatement": "1.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to give a third-party security auditor read-only access to their AWS account. The auditor uses their own AWS account. Which solution meets this requirement with the LEAST operational overhead?",
+    "options": [
+      {"id": "A", "text": "Create an IAM user in the company's account with read-only permissions and share the credentials with the auditor"},
+      {"id": "B", "text": "Create an IAM role in the company's account with read-only permissions and a trust policy that allows the auditor's AWS account to assume the role"},
+      {"id": "C", "text": "Create a new AWS account for the auditor and use AWS Organizations to share access"},
+      {"id": "D", "text": "Enable the auditor's IP address in the security group and create a bastion host with read-only access"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "An IAM role with a cross-account trust policy is the recommended approach. The auditor assumes the role using their AWS credentials, generating temporary credentials. No long-term credentials are created or shared.",
+      "perOption": {
+        "A": "Sharing IAM user credentials is a security anti-pattern. IAM users have long-term credentials that cannot be easily revoked if compromised.",
+        "B": "CORRECT. Cross-account IAM roles are the AWS best practice for granting access to external parties. The trust policy allows the auditor's account to assume the role, and the role has temporary credentials.",
+        "C": "Creating a new account and using Organizations would work but adds unnecessary complexity. It doesn't address the cross-account access problem elegantly.",
+        "D": "Security groups control network access, not AWS API access. This approach doesn't make sense for read-only IAM access."
+      }
+    }
+  },
+  {
+    "id": "sec002",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A Solutions Architect needs to block a specific IP address (203.0.113.50) that is sending malicious requests to a fleet of EC2 web servers in a VPC. The web servers are in a public subnet. Which approach will MOST effectively block this IP?",
+    "options": [
+      {"id": "A", "text": "Add a deny rule to the security group attached to the web servers"},
+      {"id": "B", "text": "Add a deny rule to the network ACL associated with the public subnet"},
+      {"id": "C", "text": "Update the route table to drop traffic from 203.0.113.50"},
+      {"id": "D", "text": "Remove the internet gateway to prevent all inbound traffic"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Network ACLs support explicit DENY rules and apply at the subnet level. Adding a DENY rule for 203.0.113.50 will block that IP from reaching any resource in the subnet.",
+      "perOption": {
+        "A": "Security groups do NOT support explicit deny rules. You can only create allow rules. You cannot block a specific IP using a security group.",
+        "B": "CORRECT. NACLs support both allow and deny rules. Adding a DENY rule for 203.0.113.50 at a lower rule number than the allow rules will block that IP address. NACLs apply to all instances in the subnet.",
+        "C": "Route tables cannot be used to block specific source IP addresses. They route traffic based on destination, not source.",
+        "D": "Removing the internet gateway would block ALL internet traffic, which would take down the web servers for legitimate users."
+      }
+    }
+  },
+  {
+    "id": "sec003",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company stores sensitive customer data in Amazon S3. The security team requires that all access to specific S3 objects must be logged, including who accessed which objects and when. Which S3 encryption option satisfies this requirement while also providing encryption?",
+    "options": [
+      {"id": "A", "text": "SSE-S3 (AES-256)"},
+      {"id": "B", "text": "SSE-KMS with a customer managed key"},
+      {"id": "C", "text": "SSE-C (customer-provided keys)"},
+      {"id": "D", "text": "Client-side encryption before uploading to S3"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "SSE-KMS generates a CloudTrail log entry for every KMS API call, which happens on every GET/PUT of an S3 object. This provides an audit trail of who accessed which objects. Customer managed keys (CMKs) allow full control over key policies and rotation.",
+      "perOption": {
+        "A": "SSE-S3 provides encryption but does NOT generate per-object access logs in CloudTrail. AWS manages the keys internally without individual access tracking.",
+        "B": "CORRECT. SSE-KMS calls AWS KMS for every encrypt/decrypt operation, and KMS logs all calls to CloudTrail. This satisfies the requirement to audit who accessed specific objects.",
+        "C": "SSE-C means you provide the key with each request. AWS does not log these keys, and the access logging would need to come from S3 access logs, not CloudTrail.",
+        "D": "Client-side encryption means you encrypt before uploading. S3 has no knowledge of what the data is, and AWS cannot log decryption events."
+      }
+    }
+  },
+  {
+    "id": "sec004",
+    "domain": 1,
+    "taskStatement": "1.1",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "A company uses AWS Organizations with multiple member accounts. The security team needs to ensure that no member account can disable AWS CloudTrail, even by the account's root user. Which solution achieves this?",
+    "options": [
+      {"id": "A", "text": "Enable AWS Config rules in each account to detect CloudTrail disablement"},
+      {"id": "B", "text": "Attach an SCP to the organization root that denies the cloudtrail:StopLogging and cloudtrail:DeleteTrail actions"},
+      {"id": "C", "text": "Use IAM permission boundaries in each account to restrict the root user"},
+      {"id": "D", "text": "Enable MFA delete on the S3 bucket that stores CloudTrail logs"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "SCPs (Service Control Policies) apply to all principals in member accounts, including the root user of that account. An SCP denying cloudtrail:StopLogging prevents anyone in member accounts from disabling CloudTrail.",
+      "perOption": {
+        "A": "Config rules detect after the fact. They can alert but cannot prevent the action. The trail could still be disabled.",
+        "B": "CORRECT. SCPs restrict permissions for all IAM principals AND the root user in member accounts. An SCP is the only way to restrict the root user in a member account.",
+        "C": "IAM permission boundaries do NOT apply to the root user. Root users bypass all IAM policies including boundaries.",
+        "D": "MFA delete protects the S3 objects containing logs from being deleted, but doesn't prevent someone from stopping CloudTrail from creating new logs."
+      }
+    }
+  },
+  {
+    "id": "sec005",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "An application running on Amazon EC2 needs to retrieve database credentials that are rotated every 30 days. The solution must automatically use the latest credentials without requiring application restarts or code deployments. Which service should a Solutions Architect recommend?",
+    "options": [
+      {"id": "A", "text": "AWS Systems Manager Parameter Store (Standard tier)"},
+      {"id": "B", "text": "Amazon S3 with versioning enabled"},
+      {"id": "C", "text": "AWS Secrets Manager with automatic rotation enabled"},
+      {"id": "D", "text": "AWS Key Management Service (KMS)"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "AWS Secrets Manager supports automatic credential rotation using Lambda functions and maintains version history. The application retrieves the current secret value at runtime, automatically getting the latest rotated credentials.",
+      "perOption": {
+        "A": "Parameter Store Standard doesn't support automatic rotation. You would have to implement rotation manually.",
+        "B": "S3 with versioning can store credentials but has no rotation capability and is not designed for secrets management.",
+        "C": "CORRECT. Secrets Manager provides automatic rotation for RDS and other databases. The application calls Secrets Manager at runtime to get the current AWSCURRENT secret, which is always the latest version.",
+        "D": "KMS manages encryption keys, not application secrets like database passwords. It doesn't provide a mechanism to store or retrieve credentials."
+      }
+    }
+  },
+  {
+    "id": "sec006",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company wants to allow their employees to access multiple AWS accounts using their existing corporate Azure Active Directory credentials. They want a single sign-on experience. Which AWS service should be used?",
+    "options": [
+      {"id": "A", "text": "AWS Directory Service for Microsoft Active Directory"},
+      {"id": "B", "text": "IAM Identity Center with an external SAML 2.0 identity provider"},
+      {"id": "C", "text": "Amazon Cognito User Pools"},
+      {"id": "D", "text": "IAM users with SAML federation"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "IAM Identity Center integrates with external SAML 2.0 identity providers like Azure AD, providing SSO access to multiple AWS accounts through a single portal. Users authenticate with their existing corporate credentials.",
+      "perOption": {
+        "A": "AWS Directory Service for Microsoft AD creates a managed Active Directory in AWS but doesn't directly integrate with Azure AD for SSO across multiple AWS accounts.",
+        "B": "CORRECT. IAM Identity Center (formerly AWS SSO) supports SAML 2.0 external identity providers including Azure AD. Employees get a single portal to access all authorized AWS accounts.",
+        "C": "Amazon Cognito is for authenticating end users of applications. It's not designed for employee access to AWS accounts.",
+        "D": "Creating IAM users with SAML federation would work for a single account but doesn't scale well to multiple accounts. IAM Identity Center is the preferred solution."
+      }
+    }
+  },
+  {
+    "id": "sec007",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company is hosting a web application on an Application Load Balancer. They want to protect the application against SQL injection and cross-site scripting attacks. Which service should be deployed?",
+    "options": [
+      {"id": "A", "text": "AWS Shield Advanced"},
+      {"id": "B", "text": "Amazon GuardDuty"},
+      {"id": "C", "text": "AWS WAF attached to the Application Load Balancer"},
+      {"id": "D", "text": "VPC Network Access Control Lists"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "AWS WAF is a Layer 7 web application firewall that can be attached to an ALB to inspect HTTP requests and block SQLi and XSS attacks using managed rule groups or custom rules.",
+      "perOption": {
+        "A": "Shield Advanced protects against DDoS attacks at Layer 3 and 4. It doesn't inspect HTTP content for SQLi or XSS attacks.",
+        "B": "GuardDuty detects threats using CloudTrail logs and VPC Flow Logs. It doesn't inspect HTTP request content or block SQLi/XSS.",
+        "C": "CORRECT. AWS WAF operates at Layer 7 and inspects HTTP content. It has built-in managed rules for SQLi and XSS detection and can block matching requests before they reach your application.",
+        "D": "NACLs operate at Layer 3/4 and cannot inspect HTTP content for application-level attacks like SQLi or XSS."
+      }
+    }
+  },
+  {
+    "id": "sec008",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A security team wants to be automatically alerted when an IAM user creates an Amazon S3 bucket with public read access. Which combination of services provides this capability?",
+    "options": [
+      {"id": "A", "text": "Enable Amazon Macie and configure email notifications"},
+      {"id": "B", "text": "Enable AWS Config with the s3-bucket-public-read-prohibited rule and an SNS notification for non-compliance"},
+      {"id": "C", "text": "Enable AWS CloudTrail and set up a manual log review process"},
+      {"id": "D", "text": "Enable Amazon GuardDuty and configure email alerts"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "AWS Config continuously monitors resource configurations and evaluates them against rules. The s3-bucket-public-read-prohibited rule detects public buckets and marks them non-compliant. SNS notifications trigger on non-compliance events.",
+      "perOption": {
+        "A": "Amazon Macie discovers sensitive data in S3 and can detect publicly accessible buckets, but it's primarily for data classification. Config with specific rules is more precise for this use case.",
+        "B": "CORRECT. AWS Config evaluates resource configurations against defined rules. The s3-bucket-public-read-prohibited managed rule detects when S3 buckets have public read access and triggers an SNS notification.",
+        "C": "CloudTrail records the API call but doesn't automatically evaluate or alert. Manual log review doesn't meet the 'automatically alerted' requirement.",
+        "D": "GuardDuty detects behavioral threats and anomalies, not configuration compliance issues like public S3 buckets."
+      }
+    }
+  },
+  {
+    "id": "sec009",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "hard",
+    "type": "multiple-response",
+    "question": "A company needs to ensure that data stored in Amazon S3 cannot be accessed from outside the corporate network. Which TWO actions should the Solutions Architect take?",
+    "options": [
+      {"id": "A", "text": "Create an S3 VPC Gateway Endpoint in the corporate VPC"},
+      {"id": "B", "text": "Add a bucket policy that denies requests where aws:SourceVpc is not the corporate VPC ID"},
+      {"id": "C", "text": "Enable S3 Block Public Access at the account level"},
+      {"id": "D", "text": "Encrypt all S3 objects with SSE-KMS"},
+      {"id": "E", "text": "Configure the S3 bucket to use requester pays"}
+    ],
+    "correctAnswers": ["A", "B"],
+    "explanation": {
+      "correct": "Creating a VPC Gateway Endpoint allows S3 access from within the VPC without going through the internet. The bucket policy with aws:SourceVpc condition restricts access to only requests originating from the corporate VPC (through the endpoint).",
+      "perOption": {
+        "A": "CORRECT. A VPC Gateway Endpoint routes S3 traffic through the AWS network without using the internet, and enables the use of VPC-based S3 access controls.",
+        "B": "CORRECT. A bucket policy with Condition: 'StringNotEquals': {'aws:SourceVpc': 'vpc-xxxxx'} denies any request that doesn't come from the specified VPC. Combined with the endpoint, this restricts access to the corporate network.",
+        "C": "Block Public Access prevents public access but doesn't restrict access to only the corporate network. Corporate users could still access from home over the internet.",
+        "D": "Encryption protects data at rest but doesn't restrict who can access the data over the network.",
+        "E": "Requester pays billing doesn't restrict access — it just determines who pays for the request charges."
+      }
+    }
+  },
+  {
+    "id": "sec010",
+    "domain": 1,
+    "taskStatement": "1.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company uses an Application Load Balancer and wants to implement user authentication so that only authenticated users can access the application. Users should log in with their Google account. Which ALB feature enables this?",
+    "options": [
+      {"id": "A", "text": "ALB with a custom Lambda authorizer"},
+      {"id": "B", "text": "ALB with built-in OIDC authentication action using Google as the identity provider"},
+      {"id": "C", "text": "ALB with a WAF rule that validates Google OAuth tokens"},
+      {"id": "D", "text": "ALB with an Amazon Cognito User Pool that is federated with Google"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "ALB natively supports OIDC-based authentication. You can configure an authentication action on the listener that integrates with any OIDC-compliant IdP including Google. Unauthenticated users are redirected to the Google login page.",
+      "perOption": {
+        "A": "Lambda authorizers are available on API Gateway, not ALB directly. While possible with API Gateway in front, ALB has native authentication support.",
+        "B": "CORRECT. ALB supports built-in user authentication via OIDC or Amazon Cognito. You add an authentication action to the listener rule that redirects users to Google's login, then verifies the token before forwarding to targets.",
+        "C": "WAF doesn't validate OIDC tokens and is not designed for user authentication flows.",
+        "D": "While Cognito federated with Google works, option B is more direct. However, D is also valid. The key insight is that B doesn't require Cognito as an intermediary — ALB can talk to Google OIDC directly."
+      }
+    }
+  },
+  {
+    "id": "sec011",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to comply with a regulation requiring that encryption keys for sensitive data must be stored on dedicated hardware that only the company controls. Which AWS service meets this requirement?",
+    "options": [
+      {"id": "A", "text": "AWS KMS with customer managed keys (CMKs)"},
+      {"id": "B", "text": "AWS CloudHSM"},
+      {"id": "C", "text": "AWS Certificate Manager (ACM)"},
+      {"id": "D", "text": "Amazon S3 with SSE-KMS encryption"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "AWS CloudHSM provides dedicated, single-tenant Hardware Security Modules (HSMs) that only the customer controls. CloudHSM is FIPS 140-2 Level 3 certified and AWS cannot access the keys stored in the HSM.",
+      "perOption": {
+        "A": "AWS KMS with CMKs provides customer control over keys, but uses shared HSM infrastructure (multi-tenant). KMS is FIPS 140-2 Level 2.",
+        "B": "CORRECT. CloudHSM gives you a dedicated (single-tenant) HSM. You manage the keys exclusively — AWS cannot retrieve them. This satisfies regulations requiring dedicated hardware key storage.",
+        "C": "ACM manages TLS certificates, not general-purpose encryption keys for sensitive data.",
+        "D": "SSE-KMS uses AWS KMS, which is shared infrastructure. This doesn't meet the 'dedicated hardware only the company controls' requirement."
+      }
+    }
+  },
+  {
+    "id": "sec012",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A security analyst wants to know which API calls were made in their AWS account over the past week, including who made them and from which IP address. Which service provides this information?",
+    "options": [
+      {"id": "A", "text": "Amazon GuardDuty"},
+      {"id": "B", "text": "AWS Config"},
+      {"id": "C", "text": "AWS CloudTrail"},
+      {"id": "D", "text": "Amazon Inspector"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "AWS CloudTrail records all API calls made in an AWS account, including the caller's identity, the source IP address, and the time of the request. It is the audit log for all AWS actions.",
+      "perOption": {
+        "A": "GuardDuty analyzes CloudTrail and other logs to detect threats, but it doesn't provide the raw API call history for auditing purposes.",
+        "B": "AWS Config tracks the configuration of AWS resources over time, not individual API calls.",
+        "C": "CORRECT. CloudTrail is the service that records every API call with full details: who called it, from where, what parameters were used, and the result.",
+        "D": "Amazon Inspector scans for software vulnerabilities and network exposures. It doesn't track API calls."
+      }
+    }
+  },
+  {
+    "id": "sec013",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's VPC has private subnets that need to access Amazon S3 to download software updates. The company wants to minimize data transfer costs and avoid routing traffic through the internet. Which solution should be implemented?",
+    "options": [
+      {"id": "A", "text": "Deploy a NAT Gateway in each AZ"},
+      {"id": "B", "text": "Create an S3 VPC Interface Endpoint"},
+      {"id": "C", "text": "Create an S3 VPC Gateway Endpoint"},
+      {"id": "D", "text": "Enable VPC Flow Logs and configure direct S3 access"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "An S3 VPC Gateway Endpoint allows private subnet resources to access S3 directly through the AWS network without internet access. It is free (no hourly or data processing fees), making it the most cost-effective solution.",
+      "perOption": {
+        "A": "A NAT Gateway would work but costs $0.045/GB of processed data plus hourly charges. Much more expensive than a Gateway Endpoint.",
+        "B": "An Interface Endpoint for S3 also works but costs $0.01/hour per AZ plus $0.01/GB. The Gateway Endpoint is free for S3.",
+        "C": "CORRECT. The S3 Gateway Endpoint is free. It routes S3 traffic through the AWS network via route table entries, avoiding NAT Gateway costs and the internet.",
+        "D": "VPC Flow Logs are for network traffic logging. They don't change how traffic is routed to S3."
+      }
+    }
+  },
+  {
+    "id": "sec014",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "hard",
+    "type": "multiple-response",
+    "question": "A company is connecting their on-premises network to AWS using AWS Direct Connect. The security team requires that all data transmitted between on-premises and AWS must be encrypted. Which TWO approaches achieve this?",
+    "options": [
+      {"id": "A", "text": "Enable Direct Connect encryption in the AWS console"},
+      {"id": "B", "text": "Configure an AWS Site-to-Site VPN over the Direct Connect connection"},
+      {"id": "C", "text": "Use a public Virtual Interface (VIF) with S3 Transfer Acceleration"},
+      {"id": "D", "text": "Encrypt data at the application layer using TLS before transmitting"},
+      {"id": "E", "text": "Enable MACsec encryption on the Direct Connect connection (if supported by the connection speed)"}
+    ],
+    "correctAnswers": ["B", "E"],
+    "explanation": {
+      "correct": "Direct Connect does not encrypt traffic by default. VPN over Direct Connect adds IPSec encryption. MACsec (IEEE 802.1AE) provides link-level encryption for dedicated Direct Connect connections (1 Gbps+).",
+      "perOption": {
+        "A": "There is no 'Direct Connect encryption' toggle in the AWS console. Direct Connect is private but not encrypted by default.",
+        "B": "CORRECT. You can run a Site-to-Site VPN over a Direct Connect connection (using a public VIF). This provides IPSec encryption while using Direct Connect's consistent bandwidth.",
+        "C": "S3 Transfer Acceleration uses CloudFront edge nodes and is not related to encrypting Direct Connect traffic.",
+        "D": "Application-layer TLS works but is not the typical network-level encryption approach the question implies. Also, it only protects specific connections, not all data between networks.",
+        "E": "CORRECT. MACsec is a Layer 2 encryption standard supported on Direct Connect dedicated connections (1 Gbps and above). It provides link-layer encryption between your router and AWS."
+      }
+    }
+  },
+  {
+    "id": "sec015",
+    "domain": 1,
+    "taskStatement": "1.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A developer accidentally deleted a critical AWS resource using the CLI. The security team wants to investigate exactly when this happened and what IAM credentials were used. Which service provides this information?",
+    "options": [
+      {"id": "A", "text": "Amazon CloudWatch Logs"},
+      {"id": "B", "text": "AWS Config"},
+      {"id": "C", "text": "Amazon GuardDuty"},
+      {"id": "D", "text": "AWS CloudTrail"}
+    ],
+    "correctAnswers": ["D"],
+    "explanation": {
+      "correct": "AWS CloudTrail records all API calls including the identity of who made the call, the time, and the request parameters. It would show exactly when the delete call was made and which IAM user or role credentials were used.",
+      "perOption": {
+        "A": "CloudWatch Logs stores application and service logs. It doesn't capture IAM API call details by default.",
+        "B": "AWS Config tracks resource configuration history and would show the resource was deleted, but doesn't capture the IAM credentials used for the deletion with the same detail as CloudTrail.",
+        "C": "GuardDuty detects threats but doesn't provide an audit log of API calls.",
+        "D": "CORRECT. CloudTrail records every API call with the caller's identity (IAM user/role ARN), time, source IP, and request details. It's the definitive audit log."
+      }
+    }
+  },
+  {
+    "id": "sec016",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company is building a mobile app that allows users to log in with their Facebook or Google account, then directly access their own personal files in Amazon S3. What combination of services enables this?",
+    "options": [
+      {"id": "A", "text": "Amazon Cognito User Pools for authentication and Amazon Cognito Identity Pools for S3 access"},
+      {"id": "B", "text": "IAM Identity Center with social identity provider configuration"},
+      {"id": "C", "text": "AWS STS GetFederationToken called directly from the mobile app"},
+      {"id": "D", "text": "Amazon Cognito User Pools with temporary IAM credentials embedded in JWT tokens"}
+    ],
+    "correctAnswers": ["A"],
+    "explanation": {
+      "correct": "Cognito User Pools handles user authentication (including social login with Google/Facebook). Cognito Identity Pools exchanges the User Pool JWT token for temporary AWS credentials, allowing users to access their personal S3 files directly.",
+      "perOption": {
+        "A": "CORRECT. User Pools handle the social login flow and return a JWT. Identity Pools exchange that JWT for temporary IAM credentials scoped to that user's personal S3 folder.",
+        "B": "IAM Identity Center is for employee access to AWS accounts, not for end-user authentication in mobile apps.",
+        "C": "Calling STS GetFederationToken from a mobile app would require embedding AWS credentials in the app code — a serious security vulnerability.",
+        "D": "JWT tokens from Cognito User Pools don't contain IAM credentials. You need Identity Pools to exchange the JWT for AWS credentials."
+      }
+    }
+  },
+  {
+    "id": "sec017",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company has two VPCs (VPC-A and VPC-B) in the same AWS account and region. They need EC2 instances in VPC-A to communicate with EC2 instances in VPC-B using private IP addresses. What is the SIMPLEST solution?",
+    "options": [
+      {"id": "A", "text": "Create an AWS Transit Gateway and attach both VPCs to it"},
+      {"id": "B", "text": "Create a VPC peering connection between VPC-A and VPC-B"},
+      {"id": "C", "text": "Configure a Site-to-Site VPN between the two VPCs"},
+      {"id": "D", "text": "Create an internet gateway in each VPC and use public IP addresses"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "VPC peering is the simplest solution for connecting two VPCs. It creates a direct network connection, and traffic stays within the AWS network. For just two VPCs, this is simpler and cheaper than Transit Gateway.",
+      "perOption": {
+        "A": "Transit Gateway works but has additional cost ($0.05/hour per attachment + $0.02/GB) and more configuration complexity. It's better suited for connecting many VPCs.",
+        "B": "CORRECT. VPC peering is a direct, cost-free network connection between two VPCs (only standard data transfer charges apply). It's the simplest solution for two VPCs in the same region.",
+        "C": "Site-to-Site VPN is for connecting to on-premises networks, not VPC-to-VPC communication. VPC peering is more appropriate.",
+        "D": "Using public IP addresses would route traffic through the internet, not using private IPs. This is less secure and more expensive."
+      }
+    }
+  },
+  {
+    "id": "sec018",
+    "domain": 1,
+    "taskStatement": "1.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company has three VPCs (A, B, and C) connected via VPC peering: A↔B and B↔C. An engineer notices that instances in VPC-A cannot communicate with instances in VPC-C. What is the cause?",
+    "options": [
+      {"id": "A", "text": "VPC peering requires security groups to allow traffic from peered VPCs explicitly"},
+      {"id": "B", "text": "VPC peering connections are not transitive — A cannot reach C through B"},
+      {"id": "C", "text": "VPC peering only works within the same AZ"},
+      {"id": "D", "text": "The route tables in the VPCs need to be updated to allow all CIDR ranges"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "VPC peering is non-transitive. Even though A peers with B and B peers with C, traffic from A cannot traverse B to reach C. You need a direct A↔C peering connection for that communication.",
+      "perOption": {
+        "A": "Security groups do need to allow traffic from peered VPC CIDR ranges, but this is not the root cause of the transitive routing problem.",
+        "B": "CORRECT. VPC peering does NOT support transitive routing. The network path A→B→C does not exist. A direct peering A↔C is required.",
+        "C": "VPC peering works across AZs and even across regions (inter-region peering). AZs are not a restriction.",
+        "D": "While route tables do need to reference the peered VPC CIDRs, the problem described is fundamental transitive routing limitation, not a routing table configuration issue."
+      }
+    }
+  },
+  {
+    "id": "sec019",
+    "domain": 1,
+    "taskStatement": "1.1",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "A company's development team accidentally created an IAM policy that grants s3:* on all resources (*). The security team wants to limit this to a maximum of s3:GetObject and s3:PutObject on a specific bucket, without modifying the existing policy. Which IAM feature achieves this?",
+    "options": [
+      {"id": "A", "text": "Apply a Service Control Policy (SCP) to restrict the permissions"},
+      {"id": "B", "text": "Attach an IAM permission boundary to the IAM user or role that limits S3 access"},
+      {"id": "C", "text": "Add a deny policy to the IAM user for all S3 actions except GetObject and PutObject"},
+      {"id": "D", "text": "Apply an S3 bucket policy to restrict access to only GetObject and PutObject"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "IAM permission boundaries define the maximum permissions an IAM entity can have. Even if the attached policy grants s3:*, if the permission boundary only allows s3:GetObject and s3:PutObject on a specific bucket, those are the effective permissions.",
+      "perOption": {
+        "A": "SCPs apply to accounts in AWS Organizations, not to individual IAM users/roles. If they're in the same account, an SCP would affect all principals, not just one.",
+        "B": "CORRECT. Permission boundaries set the maximum permissions independently of identity-based policies. The effective permission is the intersection of the policy and the boundary.",
+        "C": "Adding a deny policy would work but modifies the user's policy set. The question asks for a way that works WITHOUT modifying the existing policy. Also, explicit denies can have broad effects.",
+        "D": "An S3 bucket policy restricts access to that bucket, which partially works, but doesn't prevent the user from accessing other buckets with their s3:* policy."
+      }
+    }
+  },
+  {
+    "id": "sec020",
+    "domain": 1,
+    "taskStatement": "1.3",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "An application stores sensitive documents in Amazon S3. The legal team requires that these documents cannot be deleted or overwritten for 7 years to meet regulatory requirements. Even the AWS root account must not be able to delete documents. Which S3 feature should be used?",
+    "options": [
+      {"id": "A", "text": "S3 Versioning with MFA delete enabled"},
+      {"id": "B", "text": "S3 Object Lock in Compliance mode with a 7-year retention period"},
+      {"id": "C", "text": "S3 Object Lock in Governance mode with a 7-year retention period"},
+      {"id": "D", "text": "S3 bucket policy with deny delete actions"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "S3 Object Lock Compliance mode prevents any user from deleting or modifying the object during the retention period, including the root user. The retention period cannot be shortened by anyone.",
+      "perOption": {
+        "A": "MFA delete provides protection but can be bypassed by the root user. It doesn't provide the regulatory WORM compliance required.",
+        "B": "CORRECT. Compliance mode is truly immutable — not even AWS or the account root can delete or modify the object before the retention period expires. This is the regulatory compliance (SEC Rule 17a-4, FINRA) mode.",
+        "C": "Governance mode protects from most users but can be overridden by users with special IAM permissions (s3:BypassGovernanceRetention). The root user could still delete objects.",
+        "D": "A bucket policy can be changed by an admin or root user at any time, so it doesn't provide the immutability needed for regulatory compliance."
+      }
+    }
+  }
+]

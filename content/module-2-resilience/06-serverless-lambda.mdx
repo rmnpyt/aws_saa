@@ -1,0 +1,136 @@
+---
+title: "Serverless Compute: AWS Lambda"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "serverless-lambda"
+order: 6
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["lambda", "serverless", "functions", "event-driven", "api-gateway"]
+services: ["AWS Lambda", "Amazon API Gateway"]
+---
+
+## What is Serverless?
+
+**Serverless** does not mean "no servers" — it means you don't manage servers. AWS handles provisioning, scaling, patching, and availability. You write code and pay per execution.
+
+**Benefits of serverless:**
+- No server management
+- Automatic scaling (from 0 to thousands of concurrent executions)
+- Pay per use (not for idle time)
+- Built-in high availability (multi-AZ by default)
+
+## AWS Lambda
+
+**Lambda** runs your code in response to events without provisioning or managing servers.
+
+### How Lambda Works
+
+1. An event triggers a Lambda function
+2. Lambda provisions a container (execution environment) if none are available
+3. Lambda runs your handler function
+4. Lambda returns the result
+5. The execution environment stays warm for a short time (warm start for subsequent invocations)
+
+### Key Configuration
+
+| Setting | Description |
+|---|---|
+| **Memory** | 128 MB to 10 GB. CPU scales proportionally with memory. |
+| **Timeout** | Up to 15 minutes per invocation. |
+| **Concurrency** | Up to 1,000 concurrent executions per region (soft limit, adjustable). |
+| **Deployment package** | Zip file (up to 250 MB unzipped) or Container image (up to 10 GB) |
+| **Layers** | Reusable code packages (dependencies, utilities) shared across functions |
+| **Environment variables** | Config values (use Secrets Manager for sensitive values) |
+
+### Execution Role
+
+Each Lambda function needs an **IAM execution role** — this is the IAM role the function assumes when it runs. It needs permissions to:
+- Read inputs from event sources (SQS, DynamoDB Streams, S3)
+- Write outputs to downstream services (DynamoDB, S3, SNS)
+- Write logs to CloudWatch Logs
+
+**Resource-based policy**: Also need to grant event sources permission to invoke your Lambda (for push-based invocations).
+
+### Cold Start
+
+The first invocation (or after a period of inactivity) experiences a **cold start** — Lambda must provision and initialize a new execution environment:
+- ~100ms to 1+ second depending on language and package size
+- Subsequent invocations reuse the warm container (much faster)
+- **Provisioned Concurrency**: Pre-warms execution environments to eliminate cold starts (costs money)
+- **Java and large dependencies** = longer cold starts. **Python and Node.js** = shorter cold starts.
+
+<ExamTip>
+If an exam question asks about eliminating Lambda cold starts, the answer is **Provisioned Concurrency**. For just reducing cold starts: use smaller packages, initialize outside the handler, use Python/Node.js.
+</ExamTip>
+
+## Lambda Event Sources
+
+Lambda can be triggered by many sources:
+
+| Source | Invocation type |
+|---|---|
+| **API Gateway** | Synchronous (wait for response) |
+| **S3 events** | Asynchronous (fire and forget) |
+| **DynamoDB Streams** | Poll-based (Lambda polls the stream) |
+| **SQS** | Poll-based (Lambda polls queue) |
+| **SNS** | Asynchronous |
+| **EventBridge** | Asynchronous |
+| **Kinesis** | Poll-based |
+| **CloudWatch Events** | Asynchronous (scheduled) |
+
+### Asynchronous Invocation
+- Lambda retries failed invocations 2 additional times
+- Configure a **DLQ** (SQS or SNS) to capture events that fail all retries
+- Use **Lambda Destinations** for routing success/failure to SQS, SNS, EventBridge, or another Lambda
+
+### SQS Trigger
+Lambda polls the SQS queue using **event source mapping**:
+- Lambda reads up to 10 messages at a time (batch size configurable 1–10,000 for standard, 1–10 for FIFO)
+- If Lambda fails to process a batch, the messages return to the queue (after visibility timeout) and retry
+- Configure a **DLQ on the SQS queue** (not Lambda) to catch permanently failing messages
+
+## Amazon API Gateway
+
+**API Gateway** is a fully managed service for creating, publishing, and securing APIs. It commonly sits in front of Lambda for serverless web APIs.
+
+### API Types
+
+| Type | Use case |
+|---|---|
+| **REST API** | Standard HTTP APIs with request/response transformation, caching, usage plans |
+| **HTTP API** | Simpler, faster, cheaper. Limited features. Good for Lambda/HTTP proxy. |
+| **WebSocket API** | Real-time, bidirectional communication (chat, live updates) |
+
+### API Gateway Features
+- **Authentication**: Lambda authorizers, Cognito, API keys, IAM auth
+- **Throttling**: Limit requests per second per client (prevent abuse)
+- **Caching**: Cache responses up to 3,600 seconds to reduce Lambda invocations
+- **Request/Response transformation**: Modify headers, query params, body before passing to backend
+- **Stages**: Deploy to `dev`, `staging`, `prod` with different configurations
+- **Usage plans + API keys**: Monetize APIs, limit per-key usage
+
+<KeyConcept title="Serverless API Pattern">
+The canonical serverless pattern: API Gateway (handles HTTP) → Lambda (business logic) → DynamoDB (storage). This combination scales automatically and you pay only per request.
+</KeyConcept>
+
+## Lambda Best Practices
+
+1. **Keep functions small and focused**: One function, one purpose
+2. **Initialize outside the handler**: DB connections, SDK clients — created once, reused across invocations
+3. **Use environment variables for configuration**: Don't hardcode config
+4. **Set appropriate timeouts and memory**: Don't default to max — right-size based on testing
+5. **Use Layers for shared dependencies**: Don't package the same libraries in every function
+6. **Enable X-Ray tracing**: Trace execution paths across services
+7. **Configure DLQ**: Never lose failed events silently
+
+## Summary
+
+- **Lambda**: Event-driven, serverless compute. Max 15 min timeout, 10 GB memory, 1,000 concurrent executions.
+- **Cold starts**: First invocation overhead. Use Provisioned Concurrency to eliminate.
+- **Execution role**: IAM role Lambda assumes — must grant permissions to access other services.
+- **SQS as trigger**: Lambda polls queue. Batch size up to 10K. Configure DLQ on queue.
+- **API Gateway**: Managed API layer. REST, HTTP, WebSocket. Integrates with Lambda, HTTP backends.
+- **Serverless pattern**: API Gateway → Lambda → DynamoDB. Scale to zero, pay per request.

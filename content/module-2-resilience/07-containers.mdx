@@ -1,0 +1,136 @@
+---
+title: "Containers: ECS, EKS & Fargate"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "containers"
+order: 7
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["ecs", "eks", "fargate", "docker", "containers", "ecr"]
+services: ["Amazon ECS", "Amazon EKS", "AWS Fargate", "Amazon ECR"]
+---
+
+## Containers Overview
+
+**Containers** package an application and its dependencies together, ensuring it runs consistently across environments. Docker is the dominant container runtime.
+
+AWS provides multiple options for running containers — the key is understanding WHEN to use each.
+
+## Amazon ECR (Elastic Container Registry)
+
+**ECR** is a managed Docker container registry — where you store and manage your container images:
+- Fully managed (no need to run your own Docker registry)
+- Integrated with ECS and EKS
+- Supports **image vulnerability scanning** (via Inspector)
+- **Cross-region replication** for globally distributed deployments
+- Private by default; can share publicly via ECR Public
+
+## Amazon ECS (Elastic Container Service)
+
+**ECS** is AWS's container orchestration service. It manages the lifecycle of containers — starting, stopping, and scaling them.
+
+### ECS Core Concepts
+
+| Component | Description |
+|---|---|
+| **Task Definition** | Blueprint defining containers: image, CPU, memory, networking, IAM role |
+| **Task** | A running instance of a task definition (one or more containers) |
+| **Service** | Maintains a desired number of running tasks; integrates with ALB |
+| **Cluster** | Logical grouping of compute resources (EC2 or Fargate) |
+
+### ECS Launch Types
+
+**EC2 Launch Type:**
+- You provision and manage EC2 instances that form the cluster
+- More control (instance type, AMI, storage)
+- You pay for the EC2 instances even when containers aren't using all resources
+- Good for predictable, steady workloads where you want EC2 control
+
+**Fargate Launch Type:**
+- AWS manages the underlying servers — you specify CPU and memory for each task
+- Pay only for resources your tasks actually use
+- No cluster management overhead
+- Scales faster (no waiting for EC2 instances to boot)
+- Good for variable workloads, microservices, and when you don't want to manage servers
+
+### ECS + ALB Integration
+
+```
+ALB (with target group using port mapping)
+    ↓
+ECS Service (maintains N tasks)
+    ├── Task 1 (container: port 80 → host: random port)
+    ├── Task 2 (container: port 80 → host: random port)
+    └── Task 3 (container: port 80 → host: random port)
+```
+
+ECS service registers tasks automatically with the ALB target group as they start.
+
+### ECS IAM Roles
+
+- **Task Role**: Permissions the container code needs (access S3, DynamoDB, etc.)
+- **Task Execution Role**: Permissions ECS needs to pull images from ECR, write logs to CloudWatch
+
+These are separate! Your application code uses the Task Role; ECS infrastructure uses the Execution Role.
+
+<ExamTip>
+For the exam: **Task Role** = what your app can do. **Task Execution Role** = what ECS can do on your behalf (pull image, write logs). Both are needed.
+</ExamTip>
+
+## Amazon EKS (Elastic Kubernetes Service)
+
+**EKS** is a managed **Kubernetes** service. Kubernetes (K8s) is the industry-standard open-source container orchestration platform.
+
+**When to choose EKS over ECS:**
+- Your team already knows Kubernetes
+- You need Kubernetes-specific features (custom operators, Helm charts, complex scheduling)
+- Multi-cloud strategy — Kubernetes workloads are portable
+- You're running open-source tools that are Kubernetes-native
+
+**EKS Node types:**
+- **Self-managed nodes**: EC2 instances you manage
+- **Managed node groups**: EKS manages EC2 lifecycle for you
+- **Fargate**: No node management at all
+
+## Container Comparison
+
+<ComparisonTable
+  headers={["Aspect", "ECS (Fargate)", "ECS (EC2)", "EKS (Fargate)", "EKS (EC2)"]}
+  rows={[
+    ["Orchestration", "AWS proprietary", "AWS proprietary", "Kubernetes (open-source)", "Kubernetes (open-source)"],
+    ["Server management", "None", "You manage EC2", "None", "You manage nodes"],
+    ["Kubernetes knowledge", "Not needed", "Not needed", "Required", "Required"],
+    ["Pricing", "Per vCPU/memory", "EC2 cost + ECS free", "Per vCPU/memory (higher than ECS)", "EC2 + EKS control plane"],
+    ["Best for", "AWS-native, microservices, auto-scale", "Steady workloads, GPU, custom Linux", "K8s portability, no node mgmt", "K8s with custom nodes"],
+  ]}
+/>
+
+## ECS vs. Lambda
+
+| Aspect | Lambda | ECS/Fargate |
+|---|---|---|
+| **Runtime limit** | 15 minutes | No limit |
+| **Package size** | 250 MB | Up to container size |
+| **Startup** | Cold start possible | Warm (already running) |
+| **Scale to zero** | Yes (no cost when idle) | Service stays running (minimum 1 task if needed) |
+| **Use case** | Event-driven, short-lived tasks | Long-running services, microservices |
+
+## AWS App Runner
+
+**App Runner** is a higher-level service that deploys containerized web apps and APIs with zero infrastructure knowledge:
+- Give it a container image (or source code + Dockerfile)
+- App Runner handles load balancing, auto-scaling, TLS termination
+- More opinionated than ECS/EKS — less flexibility but much simpler
+
+Good for: Small teams, quick deployments, not needing full ECS/EKS control.
+
+## Summary
+
+- **ECR**: Managed container image registry. Integrated with ECS/EKS.
+- **ECS Fargate**: AWS manages servers. Pay per task CPU/memory. Best for most use cases.
+- **ECS EC2**: You manage EC2 cluster. More control, lower cost for steady loads.
+- **EKS**: Managed Kubernetes. Use when you need K8s compatibility or already know K8s.
+- **Task Role** = app permissions. **Task Execution Role** = ECS infrastructure permissions.
+- **App Runner**: Simplest option for deploying containerized web apps.

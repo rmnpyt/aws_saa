@@ -1,0 +1,130 @@
+---
+title: "Identity Federation & AWS STS"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "identity-federation"
+order: 10
+domain: 1
+taskStatements: ["1.1"]
+estimatedMinutes: 35
+difficulty: "advanced"
+tags: ["sts", "federation", "saml", "oidc", "cross-account", "assume-role"]
+services: ["AWS STS", "IAM"]
+---
+
+## What is Federation?
+
+**Identity federation** allows external identities (from another system) to access AWS resources without creating IAM users for them. The external system is called an **Identity Provider (IdP)**.
+
+AWS supports two federation protocols:
+- **SAML 2.0** — enterprise identity standard (used with Active Directory, Okta, Ping)
+- **OpenID Connect (OIDC)** — modern web/mobile standard (used with Google, GitHub, Cognito)
+
+## AWS STS (Security Token Service)
+
+**STS** issues **temporary security credentials** (Access Key + Secret Key + Session Token) that expire from 15 minutes to 36 hours.
+
+**Core STS operations:**
+
+| Operation | Who uses it | What it does |
+|---|---|---|
+| `AssumeRole` | IAM users, roles, services | Assumes an IAM role, gets temp credentials |
+| `AssumeRoleWithSAML` | Federated users via SAML | Assumes role after SAML assertion |
+| `AssumeRoleWithWebIdentity` | Mobile/web apps with OIDC | Assumes role after OIDC token (Cognito recommended instead) |
+| `GetFederationToken` | Custom broker applications | Temp credentials for federated users |
+
+## SAML 2.0 Federation
+
+**SAML** (Security Assertion Markup Language) is used in enterprise environments:
+
+```
+1. User authenticates to their corporate IdP (e.g., ADFS, Okta)
+2. IdP generates a SAML assertion (XML) confirming identity
+3. User sends SAML assertion to AWS sign-in endpoint
+4. AWS validates assertion and calls STS AssumeRoleWithSAML
+5. STS returns temporary credentials for the mapped IAM role
+6. User accesses AWS Console or API
+```
+
+**Required setup:**
+- Trust relationship in IAM role: allow SAML IdP as principal
+- IAM role maps to the user's job function
+- IdP metadata imported into IAM
+
+## OIDC / Web Identity Federation
+
+**OIDC** is used for web and mobile applications:
+
+```
+1. User authenticates to IdP (Google, GitHub, Cognito User Pool)
+2. IdP returns an OIDC token (JWT)
+3. App passes token to STS AssumeRoleWithWebIdentity
+4. STS verifies token with the IdP and returns temp credentials
+5. App uses credentials to access AWS resources
+```
+
+**Best practice**: For mobile/web apps, use **Cognito Identity Pools** rather than calling STS directly. Cognito handles the OIDC flow and also supports unauthenticated (guest) access.
+
+## Cross-Account Access with IAM Roles
+
+One of the most common STS use cases is cross-account access:
+
+**Scenario**: An EC2 instance in Account A needs to access S3 in Account B.
+
+```
+Account B (S3 owner):
+- Create IAM role "CrossAccountS3Role"
+- Trust policy: allow Account A (arn:aws:iam::ACCOUNT_A:root) to assume this role
+- Permission policy: allow S3:GetObject on the specific bucket
+
+Account A (EC2):
+- EC2 instance role has permission to call sts:AssumeRole on the Account B role
+- EC2 code: assumes CrossAccountS3Role → gets temp creds → accesses S3 in Account B
+```
+
+<ExamTip>
+For cross-account access, the role lives in the **destination** account (the one owning the resource), and the trust policy allows the **source** account to assume it. Both sides must allow the action.
+</ExamTip>
+
+## External ID (Confused Deputy Problem)
+
+When a third-party (like a SaaS vendor) needs to assume a role in your account, use an **External ID** — a unique secret agreed upon between you and the vendor.
+
+Without External ID: Vendor A could theoretically trick AWS into assuming your role while acting on behalf of a different customer.
+
+With External ID: The `sts:AssumeRole` call must include `sts:ExternalId` matching the agreed value — this uniquely ties the assumption to your specific relationship with the vendor.
+
+## Session Policies
+
+When assuming a role, you can pass a **session policy** to further restrict what the session can do (on top of the role's permissions):
+
+```python
+sts.assume_role(
+    RoleArn='arn:aws:iam::123456789012:role/S3AccessRole',
+    RoleSessionName='app-session',
+    Policy=json.dumps({
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::specific-bucket/*"
+        }]
+    })
+)
+```
+
+The session cannot exceed the role's permissions — you can only restrict further.
+
+## STS Key Facts
+
+- Temporary credentials expire automatically — no rotation needed
+- STS is global but you can choose regional endpoints for lower latency
+- Credentials are not stored anywhere — lost credentials cannot be retrieved (just generate new ones)
+- Session duration: default 1 hour for `AssumeRole`, up to 12 hours with role's max session duration setting
+
+## Summary
+
+- **STS** = issues temporary credentials. Never permanent access keys for cross-account or federated access.
+- **SAML 2.0** = enterprise federation (AD, Okta). `AssumeRoleWithSAML`.
+- **OIDC** = modern web/mobile federation (Google, Cognito). Use Cognito Identity Pools for apps.
+- **Cross-account**: Role in destination account, trust policy allows source account's principal.
+- **External ID**: Prevents confused deputy attack when a third party assumes your role.

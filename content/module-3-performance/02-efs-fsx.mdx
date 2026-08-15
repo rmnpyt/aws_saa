@@ -1,0 +1,122 @@
+---
+title: "EFS & FSx: Shared File Systems"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "efs-fsx"
+order: 2
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["efs", "fsx", "file-system", "nfs", "lustre", "windows"]
+services: ["Amazon EFS", "Amazon FSx"]
+---
+
+## Shared File Systems
+
+EBS is only accessible from one instance at a time (except io1/io2 Multi-Attach). For shared file access across many instances, AWS offers EFS and FSx.
+
+## Amazon EFS (Elastic File System)
+
+**EFS** is a fully managed, elastic NFS (Network File System) that can be mounted by thousands of EC2 instances simultaneously.
+
+**Key characteristics:**
+- **Protocol**: NFSv4 — mounts on Linux instances only (no Windows)
+- **Multi-AZ**: Stored across multiple AZs within a region
+- **Elastic**: Automatically grows and shrinks as you add or delete files (no provisioning)
+- **Concurrent access**: Thousands of clients can access the same file system simultaneously
+- **Performance modes**: General Purpose (low latency) and Max I/O (higher latency, higher throughput for massively parallel workloads)
+- **Throughput modes**: Bursting (scales with size), Provisioned (fixed throughput regardless of size), Elastic (auto-scales, recommended)
+
+**EFS Storage Classes:**
+
+| Class | Use case | Cost |
+|---|---|---|
+| **Standard** | Frequently accessed files | Higher cost |
+| **Standard-IA (Infrequent Access)** | Files not accessed frequently | ~92% cheaper than Standard |
+
+Use **lifecycle policies** to automatically move files to IA after N days without access.
+
+**Use cases:**
+- Web serving (shared code across a fleet of EC2 instances)
+- Content management systems
+- Home directories for Linux users
+- Big data analytics (shared access from many compute nodes)
+- WordPress/Drupal multi-server deployments
+
+<ExamTip>
+**EFS = multi-instance shared Linux file system.** If the question involves multiple EC2 instances needing access to the same files and they're Linux → EFS. If Windows → FSx for Windows.
+</ExamTip>
+
+## Amazon FSx
+
+**FSx** provides fully managed file systems for specific use cases. AWS offers four FSx variants:
+
+### FSx for Windows File Server
+
+Fully managed Windows file system with SMB (Server Message Block) protocol:
+- Native Windows file system (NTFS)
+- Active Directory integration
+- DFS (Distributed File System) namespaces support
+- Supports Windows, and Linux (with Samba)
+
+**Use case**: Windows workloads that need shared file storage (SQL Server, IIS, SharePoint home directories).
+
+### FSx for Lustre
+
+**Lustre** is a high-performance parallel file system widely used in HPC (High Performance Computing):
+- Sub-millisecond latencies
+- Hundreds of GB/s throughput
+- Millions of IOPS
+- **Native S3 integration**: Reads directly from S3, processes data, writes back to S3
+
+**Use cases:**
+- Machine learning training (fast access to large datasets in S3)
+- High Performance Computing (weather modeling, genomics)
+- Financial modeling
+- Video rendering
+
+**Deployment types:**
+- **Scratch**: Temporary storage, no replication, maximum performance. Data lost if file server fails.
+- **Persistent**: Replicated within AZ, for longer-term storage. Lower performance than Scratch.
+
+### FSx for NetApp ONTAP
+
+Fully managed NetApp ONTAP file system:
+- Multi-protocol: NFS, SMB, iSCSI
+- Snapshots, cloning, compression, deduplication
+- **Data compression** and **thin provisioning** reduce storage costs
+- Compatible with on-premises ONTAP systems (easy migration)
+
+**Use case**: Enterprises migrating from NetApp on-premises, multi-protocol workloads.
+
+### FSx for OpenZFS
+
+Managed OpenZFS file system:
+- High performance, low latency (sub-millisecond)
+- NFS protocol (Linux and macOS)
+- Snapshots, cloning
+- Compatible with on-premises ZFS systems
+
+## Comparing Storage Options
+
+<ComparisonTable
+  headers={["Feature", "EBS", "EFS", "Instance Store", "S3"]}
+  rows={[
+    ["Access", "Single instance (or Multi-Attach for io1/io2)", "Thousands of instances", "Single instance only", "Any AWS service, internet"],
+    ["Protocol", "Block (ext4, NTFS, etc.)", "NFS (NFSv4)", "Block", "HTTP REST API"],
+    ["OS", "Linux and Windows", "Linux only", "Linux and Windows", "Any"],
+    ["Performance", "Up to 256K IOPS (io2)", "General: 35K IOPS; Max IO: higher", "Millions of IOPS (local NVMe)", "Scalable, managed by AWS"],
+    ["Persistence", "Persistent (AZ)", "Persistent (multi-AZ)", "Non-persistent (ephemeral)", "Persistent (multi-AZ)"],
+    ["Durability", "Within AZ", "Multi-AZ", "Not replicated", "11 nines (multi-AZ)"],
+    ["Cost model", "Per GB provisioned", "Per GB used (elastic)", "Included in instance cost", "Per GB stored + requests"],
+  ]}
+/>
+
+## Summary
+
+- **EFS**: Elastic NFS for Linux, multi-AZ, concurrent access from thousands of instances. Auto-grows.
+- **FSx for Windows**: SMB protocol, Active Directory integration. For Windows workloads.
+- **FSx for Lustre**: HPC, ML training, sub-millisecond latency, native S3 integration.
+- **FSx for NetApp ONTAP**: Multi-protocol (NFS/SMB/iSCSI), enterprise migration.
+- EFS = shared Linux storage; FSx for Windows = shared Windows storage; FSx for Lustre = HPC.

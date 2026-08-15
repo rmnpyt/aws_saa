@@ -1,0 +1,118 @@
+---
+title: "SAA-C03 Exam Strategy"
+module: "module-5-exam-prep"
+moduleTitle: "Module 5: Exam Preparation"
+slug: "exam-strategy"
+order: 1
+domain: 0
+taskStatements: []
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["exam", "strategy", "tips", "time-management"]
+services: []
+---
+
+## The SAA-C03 Exam at a Glance
+
+| Detail | Value |
+|---|---|
+| Questions | 65 (50 scored + 15 unscored pilot questions) |
+| Time | 130 minutes |
+| Format | Multiple choice (1 correct) + Multiple response (2+ correct) |
+| Pass score | 720/1000 (roughly 72% of scored questions) |
+| Delivery | Pearson VUE (testing center or online proctored) |
+| Cost | $300 USD |
+
+## The Question Distribution
+
+| Domain | Weight | ~Questions |
+|---|---|---|
+| Domain 1: Security | 30% | 15 questions |
+| Domain 2: Resilience | 26% | 13 questions |
+| Domain 3: Performance | 24% | 12 questions |
+| Domain 4: Cost | 20% | 10 questions |
+
+## How to Read Exam Questions
+
+### The MOST IMPORTANT part: the keyword
+
+AWS exam questions always have a keyword that tells you the right answer category:
+
+| Keyword | Likely answer direction |
+|---|---|
+| "most secure" | IAM least privilege, encryption, WAF, Shield |
+| "highly available" | Multi-AZ, Auto Scaling, ALB, Route 53 failover |
+| "disaster recovery" | Multi-region, RTO/RPO strategy |
+| "most cost-effective" | Reserved Instances, Spot, serverless, S3 lifecycle |
+| "lowest latency" | CloudFront, ElastiCache, Global Accelerator, placement groups |
+| "managed service" / "least operational overhead" | RDS vs. EC2+DB, Lambda vs. EC2, ElastiCache vs. self-managed Redis |
+| "automatically" | Auto Scaling, RDS Multi-AZ, Route 53 health checks, Lambda |
+| "without downtime" | Blue/green, rolling deployments, Multi-AZ failover |
+| "compliance" | CloudTrail, Config, Macie, GuardDuty, CloudHSM, HIPAA/PCI |
+
+## The Elimination Strategy
+
+With 4 options, you can usually eliminate 2 immediately:
+1. **One option usually includes an AWS anti-pattern** (e.g., "store passwords in environment variables")
+2. **One option is operationally too complex** for the stated "least operational overhead" requirement
+
+Then decide between the remaining 2 based on the specific keyword in the question.
+
+## Time Management
+
+**130 minutes / 65 questions = 2 minutes per question**
+
+**Strategy:**
+1. First pass: Answer what you know confidently (~45 questions in ~60 min)
+2. Mark for review: Flag questions you're unsure about
+3. Second pass: Tackle flagged questions with remaining time
+4. Never leave blank: Guess if needed — no penalty for wrong answers
+
+**Red flags that you're spending too long:**
+- >3 minutes on one question
+- Rereading more than 3 times
+- If still unsure after 3 minutes: make your best guess, flag it, move on
+
+## Reading Multiple-Response Questions
+
+Questions that say "**Choose TWO**" or "**Select THREE**":
+- All selected answers must be correct — partial credit is NOT given
+- Read each option independently: "Is this true/correct for the scenario?"
+- If you pick 3 but need 2: eliminate the weakest option
+- Be extra careful — these are harder to guess
+
+## Scenario Question Analysis
+
+Most SAA questions are scenarios: "A company is building a web application that..."
+
+**Extract the constraints:**
+1. Scale/traffic characteristics (small, millions of users, etc.)
+2. Data characteristics (structured, unstructured, time-series, etc.)
+3. Availability requirements (99.9%, no downtime, etc.)
+4. Specific restrictions ("on-premises", "existing Oracle database", etc.)
+5. The keyword (cost, security, performance, availability)
+
+Then select the service/architecture that best satisfies ALL constraints, not just one.
+
+## Common Traps
+
+1. **"Managed service" ≠ any AWS service**: RDS is managed; EC2 with MySQL is not
+2. **"Automatically" is key**: Many options work but only one does it automatically
+3. **Read replicas ≠ HA**: Multi-AZ is for HA; read replicas are for read scaling
+4. **Spot ≠ good for databases**: Spot can be interrupted — never for stateful DBs
+5. **Direct Connect ≠ encrypted**: Physical dedicated line, but not encrypted — need VPN for encryption
+
+## Building Your Exam Confidence
+
+1. **Practice tests matter more than re-reading**: Take a practice exam weekly in the final month
+2. **Review wrong answers deeply**: Understand WHY you got it wrong
+3. **Focus on the top 40 services**: The exam uses a limited set of services repeatedly
+4. **Know the tradeoffs**: The exam loves comparing similar services (SQS vs SNS, gp2 vs gp3, etc.)
+
+## Summary
+
+- 65 questions, 130 minutes, pass at 720
+- Keywords in questions tell you the answer category
+- Use the elimination strategy to get to 2 options, then decide
+- Flag uncertain questions, revisit at the end, never leave blank
+- Practice exams > re-reading content

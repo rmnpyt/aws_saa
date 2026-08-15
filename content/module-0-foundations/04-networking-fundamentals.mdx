@@ -1,0 +1,126 @@
+---
+title: "Networking Fundamentals"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "networking-fundamentals"
+order: 4
+domain: 0
+taskStatements: []
+estimatedMinutes: 35
+difficulty: "beginner"
+tags: ["networking", "ip", "cidr", "dns", "tcp", "subnets"]
+services: ["Amazon VPC", "Amazon Route 53"]
+---
+
+## Why Networking Matters for AWS
+
+A large portion of the SAA-C03 exam tests your ability to design VPCs, configure subnets, and troubleshoot routing. This foundation lesson gives you the networking vocabulary you need before diving into VPCs.
+
+## IP Addresses
+
+Every device on a network has an **IP address** — a unique identifier.
+
+**IPv4** addresses look like `192.168.1.10` — four numbers (0–255) separated by dots.
+
+AWS uses both **public IPs** (reachable from the internet) and **private IPs** (only reachable within a VPC).
+
+### Private IP Ranges (RFC 1918)
+
+These ranges are reserved for private networks and are never routed on the public internet:
+
+| Range | CIDR | Example |
+|---|---|---|
+| Class A | 10.0.0.0/8 | 10.x.x.x |
+| Class B | 172.16.0.0/12 | 172.16.x.x – 172.31.x.x |
+| Class C | 192.168.0.0/16 | 192.168.x.x |
+
+AWS VPCs use these private ranges. The default VPC uses `172.31.0.0/16`.
+
+## CIDR Notation
+
+**CIDR** (Classless Inter-Domain Routing) notation defines a range of IP addresses:
+
+`10.0.0.0/16` means:
+- Network address: `10.0.0.0`
+- `/16` = first 16 bits are fixed (the "network" part)
+- Remaining 16 bits are for hosts → 2^16 = **65,536 addresses**
+
+| CIDR | Addresses | Hosts (approx) | Common use |
+|---|---|---|---|
+| /16 | 65,536 | 65,531 | VPC |
+| /24 | 256 | 251 | Subnet |
+| /28 | 16 | 11 | Small subnet |
+| /32 | 1 | 1 | Single IP address |
+
+<ExamTip>
+AWS reserves **5 IP addresses** in every subnet: network address, VPC router, DNS, future use, and broadcast. A /28 subnet has 16 IPs but only 11 usable. Know this for subnet sizing questions.
+</ExamTip>
+
+## Subnets
+
+A **subnet** is a subdivision of an IP address range within a VPC. Subnets exist within a single Availability Zone.
+
+**Public subnet**: Has a route to an Internet Gateway — resources can have public IPs and be reached from the internet.
+
+**Private subnet**: No direct route to the internet — resources can only reach the internet via a NAT Gateway (for outbound traffic).
+
+## DNS (Domain Name System)
+
+DNS translates human-readable names (`aws.amazon.com`) into IP addresses (`54.239.28.85`).
+
+**Key concepts:**
+- **DNS resolver**: asks DNS servers for the IP address
+- **Authoritative DNS**: holds the official records for a domain
+- **TTL**: how long a DNS record is cached before being refreshed
+- **Route 53**: AWS's managed DNS service — can route traffic based on health, latency, geography
+
+### Common DNS Record Types
+
+| Record | Purpose | Example |
+|---|---|---|
+| **A** | Hostname → IPv4 address | example.com → 1.2.3.4 |
+| **AAAA** | Hostname → IPv6 address | example.com → 2001::1 |
+| **CNAME** | Hostname → another hostname | www.example.com → example.com |
+| **MX** | Mail exchange | Directs email |
+| **TXT** | Text records | Domain ownership verification |
+| **Alias** | AWS-specific — maps to AWS resources | example.com → ALB DNS name |
+
+<KeyConcept title="CNAME vs. Alias records">
+A CNAME cannot point to a zone apex (root domain like `example.com`), only subdomains (`www.example.com`). Route 53 Alias records solve this — they can point the root domain to an ALB, CloudFront, or S3 website. Alias records are free; CNAME queries cost money.
+</KeyConcept>
+
+## TCP vs. UDP
+
+| Protocol | Characteristics | Common ports |
+|---|---|---|
+| **TCP** | Reliable, ordered delivery. Three-way handshake. | HTTP(80), HTTPS(443), SSH(22), RDS(3306, 5432) |
+| **UDP** | Unreliable, but faster. No connection establishment. | DNS(53), NTP(123), video streaming |
+
+Most web traffic uses TCP. DNS queries typically use UDP (falling back to TCP for large responses).
+
+## HTTP, HTTPS, and TLS
+
+- **HTTP** (port 80): unencrypted web traffic
+- **HTTPS** (port 443): HTTP over TLS/SSL — encrypted
+- **TLS** (Transport Layer Security): the encryption protocol; **SSL** is the deprecated predecessor but the terms are used interchangeably
+
+AWS Certificate Manager (ACM) provides free TLS certificates for use with ALB, CloudFront, and API Gateway.
+
+## OSI Model (Simplified for SAA)
+
+You don't need to memorize all 7 OSI layers, but you'll see Layer references in load balancer questions:
+
+| Layer | Name | AWS context |
+|---|---|---|
+| Layer 3 | Network | IP routing; Gateway Load Balancer (GWLB) |
+| Layer 4 | Transport | TCP/UDP; Network Load Balancer (NLB) |
+| Layer 7 | Application | HTTP/HTTPS; Application Load Balancer (ALB) |
+
+## Summary
+
+- IPv4 addresses, CIDR notation (/16, /24, /28), and private IP ranges are foundational VPC knowledge
+- AWS reserves 5 IPs per subnet — factor this into subnet sizing
+- Public subnets route to an Internet Gateway; private subnets use a NAT Gateway for outbound access
+- DNS record types: A, CNAME, Alias (Route 53-specific, can target root domain)
+- TCP = reliable (HTTP, SSH, databases); UDP = fast (DNS, video)
+- Layer 7 (ALB) vs. Layer 4 (NLB) is a key exam distinction

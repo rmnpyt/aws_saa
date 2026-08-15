@@ -1,0 +1,140 @@
+---
+title: "Common Wrong Answers & Traps"
+module: "module-5-exam-prep"
+moduleTitle: "Module 5: Exam Preparation"
+slug: "common-traps"
+order: 4
+domain: 0
+taskStatements: []
+estimatedMinutes: 25
+difficulty: "advanced"
+tags: ["traps", "wrong-answers", "gotchas", "exam-tips"]
+services: []
+---
+
+## Security Traps
+
+### Trap 1: SCPs apply to the management account
+**WRONG**: SCPs do NOT apply to the management (payer) account in AWS Organizations. They only restrict member accounts.
+
+**Correct**: "SCP applies to all member accounts in the OU, but the management account is exempt."
+
+### Trap 2: "Deny all" = no access
+**Watch out**: An IAM deny always wins, but by default (no Allow) = deny. The confusion: "I removed all policies, so now it's secure." True, but an explicit Deny is different from an implicit Deny — and you might have a resource-based policy that grants access.
+
+### Trap 3: Security Groups have explicit Deny
+**WRONG**: Security Groups only have Allow rules. There is NO explicit Deny in a security group. You cannot block a specific IP with a security group — use a NACL.
+
+### Trap 4: VPC Peering is transitive
+**WRONG**: VPC Peering is NOT transitive. A→B and B→C does not allow A→C communication. You need a direct A→C peering (or use Transit Gateway).
+
+### Trap 5: Direct Connect is encrypted
+**WRONG**: Direct Connect is a private physical connection, NOT encrypted by default. For encrypted Direct Connect traffic, you need to add VPN over it.
+
+### Trap 6: ACM certificates can be exported
+**WRONG**: ACM public certificates cannot be exported. They only work with ALB, CloudFront, API Gateway, and other AWS services. You cannot install them on an EC2 instance directly.
+
+---
+
+## High Availability Traps
+
+### Trap 7: Read Replicas provide automatic failover
+**WRONG**: RDS Read Replicas provide read scaling. If the primary fails, you must **manually promote** a read replica. Only **Multi-AZ** provides **automatic failover**.
+
+### Trap 8: DynamoDB needs Multi-AZ configuration
+**WRONG**: DynamoDB automatically replicates across 3 AZs. There's no Multi-AZ toggle — it's always on.
+
+### Trap 9: Lambda is not HA
+**WRONG**: Lambda is inherently multi-AZ. If one AZ fails, Lambda continues to run invocations in other AZs automatically.
+
+### Trap 10: Spot Instances are reliable for production
+**WRONG**: Spot Instances can be interrupted with only 2-minute notice. Never use Spot for stateful databases, real-time APIs, or any workload that cannot tolerate interruption.
+
+### Trap 11: Reserved Instances guarantee capacity
+**WRONG**: Standard Reserved Instances provide a billing discount — NOT a capacity reservation. To actually reserve capacity, use **On-Demand Capacity Reservations**.
+
+---
+
+## Storage Traps
+
+### Trap 12: S3 is a file system
+**WRONG**: S3 is object storage. You cannot mount it like a drive or use it with NFS. Use EFS for shared Linux file access, FSx for Windows file access.
+
+### Trap 13: EBS can be shared across AZs
+**WRONG**: An EBS volume is in exactly one AZ. You cannot attach it to an EC2 instance in another AZ. Use EFS or S3 for cross-AZ sharing.
+
+### Trap 14: Instance Store persists after stop
+**WRONG**: Instance Store is ephemeral — data is LOST when the instance stops, terminates, or fails. Never use it for data you need to keep.
+
+### Trap 15: EFS works with Windows
+**WRONG**: EFS uses NFSv4, which doesn't work natively with Windows. Use **FSx for Windows File Server** for Windows shared storage.
+
+### Trap 16: S3 One Zone-IA is suitable for primary backups
+**WRONG**: S3 One Zone-IA stores data in only ONE AZ. If that AZ is destroyed, data is gone. Use Standard or Standard-IA for primary data copies you can't recreate.
+
+---
+
+## Performance Traps
+
+### Trap 17: CloudFront and Global Accelerator are the same
+**WRONG**: CloudFront caches content at the edge (HTTP, reduces origin load). Global Accelerator routes TCP/UDP traffic through the AWS backbone (no caching, works for any protocol).
+
+### Trap 18: DAX works with RDS
+**WRONG**: DAX (DynamoDB Accelerator) is ONLY for DynamoDB. For RDS caching, use ElastiCache.
+
+### Trap 19: Kinesis Firehose is real-time
+**WRONG**: Kinesis Firehose has a minimum 60-second buffer. It is "near real-time," not real-time. For real-time processing, use Kinesis Data Streams → Lambda.
+
+### Trap 20: FIFO SQS has unlimited throughput
+**WRONG**: Standard SQS has unlimited throughput. FIFO SQS is limited to 3,000 messages/second with batching (300 without). Use Standard queues when you don't need ordering.
+
+---
+
+## Cost Traps
+
+### Trap 21: Spot Instances are always 90% cheaper
+**WRONG**: Spot discount varies by instance type, AZ, and time — from 10% to 90%. The 90% figure is for specific instances at specific times. Plan for an average discount but don't rely on a specific percentage.
+
+### Trap 22: NAT Gateway is free
+**WRONG**: NAT Gateway charges $0.045/hour + $0.045/GB processed. For high-volume S3 access, use a Gateway Endpoint (free) instead.
+
+### Trap 23: Reserved Instances require a specific instance type forever
+**WRONG for Convertible RIs**: Convertible Reserved Instances let you change instance family, size, OS, and tenancy at any time during the term.
+**CORRECT for Standard RIs**: Standard RIs ARE locked to instance family and region.
+
+---
+
+## Service Selection Traps
+
+### Trap 24: SQS for pub/sub
+**WRONG (sort of)**: SQS is a queue — one consumer group processes each message. For publishing to multiple independent subscribers, use **SNS** (or SNS + SQS fan-out).
+
+### Trap 25: Amazon MQ for new AWS applications
+**WRONG**: Amazon MQ (ActiveMQ/RabbitMQ) is for migrating existing applications with those dependencies. For new AWS-native applications, use SQS/SNS — they're more scalable, serverless, and cheaper.
+
+### Trap 26: ElastiCache Redis and Memcached are interchangeable
+**They're not**: Redis has persistence, replication, sorted sets, pub/sub, cluster mode. Memcached is multi-threaded, no persistence, no replication. For almost all exam scenarios, Redis is the better answer.
+
+---
+
+## Architectural Traps
+
+### Trap 27: Synchronous microservices are resilient
+**WRONG**: If Service A calls Service B synchronously and B is down, A fails too. Use **SQS between services** for resilient, decoupled architecture.
+
+### Trap 28: More AZs always means lower cost
+**WRONG**: Using 3 AZs with 3 NAT Gateways costs 3x the NAT Gateway fees. Balance HA requirements with cost.
+
+### Trap 29: RDS Proxy is required for Lambda + RDS
+**WRONG**: Lambda + RDS works without Proxy, but RDS Proxy is recommended to handle the connection pooling problem at scale. It's not required but is a best practice for Lambda invocations.
+
+## Summary
+
+The most tested traps:
+1. Multi-AZ = automatic failover; Read Replicas = manual promotion
+2. Security Groups = allow only; NACLs = allow and deny
+3. VPC Peering = not transitive; Transit Gateway = transitive
+4. Direct Connect = not encrypted; add VPN for encryption
+5. Instance Store = ephemeral; EBS = persistent
+6. DAX = DynamoDB only; ElastiCache = other databases
+7. Kinesis Firehose = 60-second minimum delay; Streams = real-time

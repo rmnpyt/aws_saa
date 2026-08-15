@@ -1,0 +1,244 @@
+[
+  {
+    "id": "cost001",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company runs a batch processing job every night from 11pm to 5am (6 hours) using 100 EC2 instances. The job processes data and can be restarted if an instance is interrupted. Which EC2 pricing option provides the LOWEST cost?",
+    "options": [
+      {"id": "A", "text": "On-Demand Instances"},
+      {"id": "B", "text": "Reserved Instances (1-year, all upfront)"},
+      {"id": "C", "text": "Spot Instances"},
+      {"id": "D", "text": "Dedicated Hosts"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "The batch job can be restarted if interrupted (fault-tolerant) and runs for only 6 hours per day. Spot Instances provide up to 90% discount compared to On-Demand and are ideal for fault-tolerant, interruptible workloads.",
+      "perOption": {
+        "A": "On-Demand is the baseline price. More expensive than Spot for this use case.",
+        "B": "Reserved Instances require a 1-year or 3-year commitment. The job only runs 6 hours/day, so you'd be paying for capacity even when not using it. The effective cost is worse than Spot for intermittent workloads.",
+        "C": "CORRECT. Spot Instances are perfect for fault-tolerant batch jobs. Up to 90% discount. If interrupted, the job can restart from where it left off.",
+        "D": "Dedicated Hosts are the most expensive option and are for specific compliance/licensing requirements. Not appropriate for batch jobs."
+      }
+    }
+  },
+  {
+    "id": "cost002",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's web application has a predictable traffic pattern: high traffic 9am-5pm weekdays and minimal traffic nights/weekends. They need to optimize EC2 costs. Which strategy is MOST cost-effective while maintaining availability?",
+    "options": [
+      {"id": "A", "text": "Run a large number of On-Demand instances continuously"},
+      {"id": "B", "text": "Purchase Reserved Instances for the baseline load plus On-Demand for peaks"},
+      {"id": "C", "text": "Purchase Reserved Instances for peak load"},
+      {"id": "D", "text": "Use only Spot Instances with Auto Scaling"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Reserved Instances for baseline (always-needed) capacity provides up to 72% discount. On-Demand handles the predictable daily peak. This minimizes RI waste (no idle RIs at night) while avoiding full On-Demand pricing.",
+      "perOption": {
+        "A": "Running a large fleet continuously on On-Demand wastes money during low-traffic periods.",
+        "B": "CORRECT. The optimal strategy: RIs for the minimum always-needed instances (pay less for consistent baseline). On-Demand (or Spot) for traffic spikes. No RI waste since baseline is always running.",
+        "C": "Purchasing RIs for peak load means paying for capacity that sits idle nights and weekends. The RI for peak capacity is wasted 60%+ of the time.",
+        "D": "Spot instances for a web application risk availability (instances can be interrupted). Not appropriate for production traffic without On-Demand fallback."
+      }
+    }
+  },
+  {
+    "id": "cost003",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company stores 100 TB of log files in Amazon S3 Standard storage. Log files older than 30 days are rarely accessed but must be retained for 1 year for compliance. How can the company reduce storage costs MOST effectively?",
+    "options": [
+      {"id": "A", "text": "Delete log files after 30 days and rely on CloudWatch Logs"},
+      {"id": "B", "text": "Create a lifecycle rule to move logs to S3 Glacier Flexible Retrieval after 30 days"},
+      {"id": "C", "text": "Enable S3 Intelligent-Tiering for all objects"},
+      {"id": "D", "text": "Move logs to Amazon RDS for efficient SQL querying"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "S3 Glacier Flexible Retrieval costs approximately 95% less than S3 Standard. Since logs after 30 days are rarely accessed (compliance-only), moving them to Glacier satisfies the 1-year retention while dramatically reducing cost.",
+      "perOption": {
+        "A": "Deleting logs violates the 1-year compliance retention requirement.",
+        "B": "CORRECT. Lifecycle rule: Standard (0-30 days) → Glacier Flexible Retrieval (30-365 days) → Delete (after 365 days). Glacier costs ~$0.004/GB vs Standard's ~$0.023/GB — approximately 83% savings on archive storage.",
+        "C": "Intelligent-Tiering automatically moves objects but has a monitoring fee per object and doesn't achieve the cost savings of Glacier for truly archived data.",
+        "D": "Moving logs to RDS would increase costs significantly. S3 with Glacier lifecycle is the appropriate solution for log archival."
+      }
+    }
+  },
+  {
+    "id": "cost004",
+    "domain": 4,
+    "taskStatement": "4.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company wants to track AWS costs by product team. Each team owns resources in the same AWS account. Which solution enables cost reporting per team?",
+    "options": [
+      {"id": "A", "text": "Create separate AWS accounts for each team and use consolidated billing"},
+      {"id": "B", "text": "Implement resource tagging with a 'Team' tag and activate it as a cost allocation tag"},
+      {"id": "C", "text": "Use AWS Cost Anomaly Detection to track per-team anomalies"},
+      {"id": "D", "text": "Deploy a CloudWatch dashboard with per-team metrics"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Resource tags allow categorizing AWS costs. Activating tags as cost allocation tags makes them available in Cost Explorer and billing reports, enabling per-team cost breakdowns without creating separate accounts.",
+      "perOption": {
+        "A": "Separate accounts per team work but add complexity. The question asks about tracking within the same account.",
+        "B": "CORRECT. Tagging resources with 'Team=payments', 'Team=identity', etc., then activating 'Team' as a cost allocation tag in the billing console, allows Cost Explorer to break down costs by team.",
+        "C": "Cost Anomaly Detection identifies unusual spending patterns but doesn't provide structured per-team cost reports.",
+        "D": "CloudWatch metrics measure operational data (CPU, memory) not billing data. Cost Explorer is the right tool."
+      }
+    }
+  },
+  {
+    "id": "cost005",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A startup builds a new application with unpredictable traffic that could range from 0 to 10,000 requests per minute. They want to minimize infrastructure costs. Which architecture is MOST cost-effective?",
+    "options": [
+      {"id": "A", "text": "EC2 instances with Auto Scaling and On-Demand pricing"},
+      {"id": "B", "text": "API Gateway + AWS Lambda + Amazon DynamoDB (serverless)"},
+      {"id": "C", "text": "ECS on EC2 with Reserved Instances"},
+      {"id": "D", "text": "Elastic Beanstalk with Reserved Instances"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Serverless architecture (Lambda + API Gateway + DynamoDB) charges only per request with no idle costs. At 0 traffic, cost is effectively $0. Lambda has a generous free tier (1M requests/month, 400K GB-seconds). Perfect for unpredictable, variable traffic.",
+      "perOption": {
+        "A": "EC2 Auto Scaling still has a minimum (at least 1 instance running 24/7). Even with t3.micro, that's $8-10/month at minimum.",
+        "B": "CORRECT. Lambda charges only when invoked. DynamoDB on-demand charges only per request. API Gateway charges per request. Total cost at 0 traffic = $0. Scales to 10,000 req/min automatically.",
+        "C": "ECS on EC2 requires minimum EC2 cluster instances. Not cost-effective for zero-traffic periods.",
+        "D": "Elastic Beanstalk provisions EC2 instances, which have baseline costs even with zero traffic."
+      }
+    }
+  },
+  {
+    "id": "cost006",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company has EC2 instances in private subnets that frequently download large amounts of data from Amazon S3. Their AWS bill shows significant NAT Gateway data processing charges. Which change reduces these charges?",
+    "options": [
+      {"id": "A", "text": "Move the EC2 instances to public subnets"},
+      {"id": "B", "text": "Enable S3 Transfer Acceleration for the downloads"},
+      {"id": "C", "text": "Create a VPC Gateway Endpoint for Amazon S3"},
+      {"id": "D", "text": "Use AWS Direct Connect instead of the internet"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "A VPC Gateway Endpoint for S3 routes S3 traffic directly through the AWS network without going through the NAT Gateway. The endpoint is free, and S3 traffic no longer incurs NAT Gateway data processing charges.",
+      "perOption": {
+        "A": "Moving instances to public subnets works but removes the network isolation of private subnets, which is a security concern.",
+        "B": "S3 Transfer Acceleration speeds up uploads, not downloads from S3. Also doesn't eliminate NAT Gateway charges.",
+        "C": "CORRECT. The S3 Gateway Endpoint is free and routes S3 traffic from private subnets directly to S3 without going through the NAT Gateway. Zero NAT Gateway data processing charges for S3 traffic.",
+        "D": "Direct Connect is expensive (thousands of dollars per month for the connection). It's overkill for this scenario."
+      }
+    }
+  },
+  {
+    "id": "cost007",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company is running 50 EC2 instances that show an average CPU utilization of 8% over the past 30 days. A Solutions Architect wants to reduce EC2 costs. Which action should be taken FIRST?",
+    "options": [
+      {"id": "A", "text": "Move all instances to Spot pricing"},
+      {"id": "B", "text": "Use AWS Compute Optimizer to identify and implement right-sizing recommendations"},
+      {"id": "C", "text": "Convert all instances to Reserved Instances"},
+      {"id": "D", "text": "Enable EC2 Auto Scaling to terminate instances automatically"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "At 8% average CPU utilization, the instances are over-provisioned. Compute Optimizer analyzes usage patterns and recommends smaller instance types that can handle the actual workload at lower cost.",
+      "perOption": {
+        "A": "Moving to Spot is cost-saving but carries interruption risk for production workloads. Right-sizing first, then consider Spot for appropriate workloads.",
+        "B": "CORRECT. Compute Optimizer uses ML to analyze actual utilization and recommend optimal instance sizes. 8% CPU utilization strongly suggests over-provisioning. Right-sizing often saves 30-60%.",
+        "C": "Converting to Reserved Instances locks in the current (over-provisioned) size at a discount. Better to right-size first, then buy RIs for the correctly-sized instances.",
+        "D": "Auto Scaling helps with variable load but doesn't right-size individual instances."
+      }
+    }
+  },
+  {
+    "id": "cost008",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to store regulatory data that must be retained for 7 years but is accessed maybe twice a year for audits. Each access needs the data available within 12 hours. Which S3 storage class minimizes cost?",
+    "options": [
+      {"id": "A", "text": "S3 Standard"},
+      {"id": "B", "text": "S3 Standard-IA"},
+      {"id": "C", "text": "S3 Glacier Flexible Retrieval"},
+      {"id": "D", "text": "S3 Glacier Deep Archive"}
+    ],
+    "correctAnswers": ["D"],
+    "explanation": {
+      "correct": "S3 Glacier Deep Archive is the lowest-cost storage class (~$0.00099/GB/month). Standard retrieval is up to 12 hours, which meets the requirement. For data accessed only twice a year, Deep Archive is ideal.",
+      "perOption": {
+        "A": "S3 Standard is expensive ($0.023/GB/month) for data accessed only twice a year.",
+        "B": "Standard-IA ($0.0125/GB/month) is cheaper but still much more expensive than Glacier Deep Archive for rarely accessed data.",
+        "C": "Glacier Flexible Retrieval ($0.004/GB/month) is cheaper than Standard-IA but more expensive than Deep Archive. Retrieval time is 3-12 hours (standard), which works.",
+        "D": "CORRECT. Deep Archive is the cheapest option at ~$0.00099/GB/month — approximately 95% cheaper than Standard. Retrieval up to 12 hours (standard) meets the requirement. Minimum storage duration is 180 days, which is fine for 7-year retention."
+      }
+    }
+  },
+  {
+    "id": "cost009",
+    "domain": 4,
+    "taskStatement": "4.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company wants to prevent their development teams from accidentally launching expensive instance types (like p4d.24xlarge at $32/hour) in non-production accounts. Which mechanism prevents this?",
+    "options": [
+      {"id": "A", "text": "Set AWS Budgets with email alerts when the cost threshold is exceeded"},
+      {"id": "B", "text": "Apply an SCP to the development OU that denies ec2:RunInstances for non-approved instance types"},
+      {"id": "C", "text": "Enable AWS Trusted Advisor for instance type recommendations"},
+      {"id": "D", "text": "Configure IAM policies that require MFA for launching instances"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "An SCP can explicitly deny the launch of expensive instance types in development accounts. This is a preventive control — it stops the action before it happens, not just alerting after the fact.",
+      "perOption": {
+        "A": "Budgets alert after spending occurs. They don't prevent the expensive instance from being launched.",
+        "B": "CORRECT. An SCP with Condition: StringNotLike on ec2:InstanceType prevents launching non-approved instance types in development accounts. This is a preventive guardrail — the action is blocked, not just alerted.",
+        "C": "Trusted Advisor makes recommendations but doesn't block instance launches.",
+        "D": "MFA for instance launches adds friction but doesn't prevent expensive instance types. A developer could still launch a p4d with MFA."
+      }
+    }
+  },
+  {
+    "id": "cost010",
+    "domain": 4,
+    "taskStatement": "4.2",
+    "difficulty": "hard",
+    "type": "multiple-response",
+    "question": "A company's AWS bill is unexpectedly high. After investigation, they find that cross-AZ data transfer costs are the primary driver. Which TWO architectural changes reduce cross-AZ data transfer costs?",
+    "options": [
+      {"id": "A", "text": "Configure NLB to disable cross-zone load balancing"},
+      {"id": "B", "text": "Place ElastiCache nodes in the same AZ as the EC2 instances that use them most"},
+      {"id": "C", "text": "Use HTTPS instead of HTTP for all inter-service communication"},
+      {"id": "D", "text": "Enable VPC Flow Logs to track cross-AZ traffic"},
+      {"id": "E", "text": "Migrate all resources to a single AZ"}
+    ],
+    "correctAnswers": ["A", "B"],
+    "explanation": {
+      "correct": "Disabling NLB cross-zone load balancing keeps traffic within each AZ. Placing ElastiCache in the same AZ as the EC2 instances avoids cross-AZ cache requests. Both reduce cross-AZ data transfer charges.",
+      "perOption": {
+        "A": "CORRECT. NLB cross-zone load balancing incurs $0.01/GB charges. Disabling it means traffic stays within each AZ. ALB cross-zone is free but NLB charges for it.",
+        "B": "CORRECT. If ElastiCache is in a different AZ from the EC2 instances, every cache hit/miss generates cross-AZ traffic charges. Co-locating reduces this cost (trade-off: slightly reduced HA).",
+        "C": "HTTPS/HTTP protocol doesn't affect data transfer pricing. Encryption doesn't reduce the amount of data transferred.",
+        "D": "VPC Flow Logs help identify traffic patterns but incur storage and processing costs. They don't reduce cross-AZ transfer charges.",
+        "E": "Putting everything in one AZ eliminates cross-AZ charges but creates a single point of failure. This is a significant HA trade-off that's generally not recommended for production."
+      }
+    }
+  }
+]

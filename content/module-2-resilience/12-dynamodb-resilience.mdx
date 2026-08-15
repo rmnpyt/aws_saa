@@ -1,0 +1,114 @@
+---
+title: "DynamoDB Resilience & Scaling"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "dynamodb-resilience"
+order: 12
+domain: 2
+taskStatements: ["2.1", "2.2"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["dynamodb", "nosql", "global-tables", "dax", "streams", "scaling"]
+services: ["Amazon DynamoDB", "Amazon DynamoDB Accelerator"]
+---
+
+## DynamoDB Built-in Resilience
+
+**DynamoDB** is a serverless, fully managed NoSQL database with resilience built into its core architecture:
+
+- **3 AZ replication**: All data is automatically replicated across 3 AZs in the region
+- **No Multi-AZ setting needed**: HA is the default — there's no option to disable it
+- **Automatic scaling**: On-demand mode scales instantly to any traffic level
+- **SLA**: 99.999% availability for Global Tables, 99.99% for standard
+
+## Capacity Modes
+
+### Provisioned Capacity
+You specify **Read Capacity Units (RCUs)** and **Write Capacity Units (WCUs)**:
+- 1 RCU = one strongly consistent read/s, or two eventually consistent reads/s, for up to 4 KB
+- 1 WCU = one write/s for up to 1 KB
+- Cost: Pay per RCU and WCU provisioned
+
+**Auto Scaling**: Provision a range (min/max) and DynamoDB auto-scales within it based on a utilization target.
+
+### On-Demand Capacity
+DynamoDB instantly adapts to your workload — no capacity planning:
+- Pay per actual read/write request
+- Scales up instantly for traffic spikes
+- More expensive per request but no waste for unpredictable workloads
+
+**When to use which:**
+- **Provisioned + Auto Scaling**: Predictable, steady workloads where you can right-size
+- **On-demand**: Unpredictable, spiky workloads, new applications where traffic is unknown
+
+## DynamoDB Global Tables
+
+**Global Tables** provide multi-region, multi-master (active-active) replication:
+
+```
+us-east-1 ←—replicates—→ eu-west-1 ←—replicates—→ ap-southeast-1
+(readable and writable)   (readable and writable)  (readable and writable)
+```
+
+**Key facts:**
+- All replicas accept reads AND writes
+- Sub-second replication between regions (typically < 1 second)
+- Last-write-wins conflict resolution (most recent timestamp wins)
+- Automatic failover — Route 53 routes to nearest healthy region
+- **Requires on-demand capacity or provisioned with auto-scaling**
+
+<ExamTip>
+DynamoDB Global Tables is the answer for "multi-region, active-active database with millisecond latency" or "survive a full regional outage with zero RPO." Aurora Global Database is the relational equivalent.
+</ExamTip>
+
+## DynamoDB Streams
+
+**DynamoDB Streams** captures a time-ordered sequence of every change to table data:
+- **Available for**: 24 hours
+- **Contains**: Old item, new item, or both (configurable)
+- **Consumers**: Lambda (most common), Kinesis Data Streams (via Kinesis adapter)
+
+**Common patterns:**
+- **Cross-region replication** (used internally by Global Tables)
+- **Trigger Lambda on data change**: New order → send email, update analytics
+- **Audit log**: Record every change to a DynamoDB table
+- **Fan-out**: Stream changes to multiple downstream systems
+
+## DAX (DynamoDB Accelerator)
+
+**DAX** is an in-memory cache specifically for DynamoDB:
+- Reduces read latency from milliseconds to **microseconds**
+- Fully managed, compatible with DynamoDB API (minimal code changes)
+- Deployed in a VPC, cache cluster with multiple nodes across AZs
+- Default TTL: 5 minutes
+
+**Use case**: Read-heavy workloads where DynamoDB's millisecond latency isn't fast enough (game leaderboards, real-time bidding, social feeds).
+
+**DAX vs. ElastiCache for DynamoDB:**
+- DAX: Purpose-built for DynamoDB, item-level caching, minimal code change
+- ElastiCache: General-purpose cache, session storage, complex data structures
+
+## DynamoDB Point-in-Time Recovery (PITR)
+
+**PITR** must be explicitly enabled and provides continuous backups:
+- Restore table to any point in the last **35 days**
+- Restores to a **new table** (doesn't overwrite existing)
+- Protects against accidental writes or deletes
+
+## DynamoDB Table Classes
+
+| Class | Description | Cost |
+|---|---|---|
+| **Standard** | Default. Frequently accessed data. | Higher storage, lower read/write cost |
+| **Standard-IA (Infrequent Access)** | For data accessed less often. | Lower storage cost, higher read/write cost |
+
+Useful for reducing storage costs on large tables with infrequent access patterns.
+
+## Summary
+
+- **Built-in HA**: DynamoDB replicates across 3 AZs automatically. No configuration needed.
+- **On-demand vs. Provisioned**: On-demand for spiky/unpredictable. Provisioned+AutoScaling for steady.
+- **Global Tables**: Multi-region active-active. Sub-second replication. Best for global apps.
+- **DynamoDB Streams**: Change data capture. Trigger Lambda, replicate, audit.
+- **DAX**: In-memory cache, microsecond reads. For extreme read performance.
+- **PITR**: Enable for 35-day recovery window. Protects against accidental deletes.

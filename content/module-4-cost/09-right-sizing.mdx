@@ -1,0 +1,132 @@
+---
+title: "Right-Sizing & Eliminating Waste"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "right-sizing"
+order: 9
+domain: 4
+taskStatements: ["4.2"]
+estimatedMinutes: 25
+difficulty: "intermediate"
+tags: ["right-sizing", "compute-optimizer", "trusted-advisor", "waste", "idle-resources"]
+services: ["AWS Compute Optimizer", "AWS Trusted Advisor"]
+---
+
+## What is Right-Sizing?
+
+**Right-sizing** is the process of matching instance types and sizes to workload performance and capacity requirements at the lowest possible cost.
+
+Most AWS customers over-provision by 30-50%:
+- Requesting maximum memory "just in case"
+- Choosing instance sizes based on fear of performance issues
+- Never revisiting sizing after initial deployment
+
+## Identifying Over-Provisioned Resources
+
+### CloudWatch Metrics to Monitor
+
+| Resource | Key metrics | Signal of over-provisioning |
+|---|---|---|
+| EC2 | CPUUtilization, NetworkIn/Out, DiskReadOps | CPU < 20% average |
+| RDS | DatabaseConnections, CPUUtilization, FreeableMemory | CPU < 10%, many GB free memory |
+| ElastiCache | CacheMisses, CPUUtilization, FreeableMemory | CPU < 20%, lots of free memory |
+| Lambda | Duration, ConcurrentExecutions | Duration consistently very low |
+
+### AWS Compute Optimizer
+
+Analyzes 14 days of CloudWatch metrics and recommends optimal configurations:
+
+**EC2 recommendations:**
+- Current: `m5.4xlarge` (CPU avg: 8%)
+- Recommended: `m5.xlarge` (save 75% of instance cost)
+
+**Lambda recommendations:**
+- Current: 512 MB memory
+- Recommended: 128 MB (function only uses 64 MB, reducing duration cost)
+
+**EBS recommendations:**
+- Current: `io1` 10,000 IOPS (actually using 500 IOPS)
+- Recommended: `gp3` 3,000 IOPS (85% cost reduction)
+
+**Enabling enhanced recommendations**: Install CloudWatch Agent to include memory utilization in analysis (EC2 doesn't report memory to CloudWatch by default).
+
+## AWS Trusted Advisor Cost Checks
+
+Trusted Advisor (Business/Enterprise support) identifies:
+
+| Check | What it finds |
+|---|---|
+| **Idle Load Balancers** | ALB/NLB with <100 requests/day |
+| **Underutilized EC2** | <10% CPU, <5 MB network over 4 weeks |
+| **Idle RDS DB Instances** | <1% CPU, <1 connection/day |
+| **Unassociated Elastic IPs** | EIP not attached to a running instance |
+| **Low S3 Request Activity** | Buckets with very low usage — might qualify for cheaper storage class |
+| **Underutilized EBS** | Low IOPS volumes (may not need io1) |
+| **Reserved Instance Optimization** | Unused or soon-expiring RIs |
+
+**Action**: Export Trusted Advisor recommendations monthly and assign tickets to resource owners.
+
+## Eliminating Common Waste
+
+### 1. Idle/Zombie Resources
+Resources nobody uses anymore:
+- EC2 instances running but not serving traffic
+- Unattached EBS volumes (billed at $0.10/GB/month)
+- Unassociated Elastic IP addresses ($0.005/hour each)
+- Old EBS snapshots that are no longer needed
+- Empty/unused S3 buckets (might have storage class requests or monitoring costs)
+
+**Detection**: AWS Config + Resource Groups. Tag resources with `Owner` and review ownership regularly.
+
+### 2. Underutilized Reserved Instances
+RIs not being used are wasted money:
+- Monitor RI utilization in Cost Explorer (target >85%)
+- Sell unused Standard RIs on the Marketplace
+- Convert Convertible RIs to match current usage
+
+### 3. Dev/Test Resources Running 24/7
+Developers forget to turn off:
+- EC2 instances running nights and weekends
+- RDS instances for dev databases
+
+**Solution**: Automated scheduler (EventBridge + Lambda or AWS Instance Scheduler).
+
+### 4. Oversized Databases
+The most common waste in enterprise AWS:
+- RDS instances with consistently <10% CPU
+- Memory not being used (ElastiCache with 90% free memory)
+
+**Solution**: Compute Optimizer + Trusted Advisor → downsize to the next smaller instance class.
+
+### 5. Unoptimized Storage
+- gp2 volumes where gp3 is cheaper and better
+- io1 volumes where gp3 with custom IOPS would be cheaper
+- S3 Standard data that hasn't been accessed in months
+
+## The Right-Sizing Process
+
+1. **Measure**: Collect CloudWatch metrics over 2+ weeks
+2. **Analyze**: Run Compute Optimizer, review Trusted Advisor
+3. **Plan**: Identify top 10 opportunities by cost savings
+4. **Test**: Apply changes in non-production first
+5. **Implement**: Change production during maintenance window
+6. **Repeat**: Monthly review cycle
+
+## Cost vs. Risk Tradeoffs
+
+Right-sizing has risk:
+- Too small = performance degradation
+- Unexpected traffic spikes can overwhelm under-provisioned instances
+
+**Mitigations:**
+- Right-size based on P95 or P99 utilization (not average)
+- Use Auto Scaling as a safety net
+- Monitor closely after changes with CloudWatch alarms
+
+## Summary
+
+- **Right-sizing** = match resource to actual needs. Most workloads are over-provisioned by 30-50%.
+- **Compute Optimizer**: ML-based recommendations for EC2, Lambda, EBS, ECS. Needs 14 days of data.
+- **Trusted Advisor**: Identifies idle resources, underutilized instances, unattached EIPs.
+- **Common waste**: Idle EC2, unattached EBS, unused EIPs, dev resources running 24/7.
+- **Monthly process**: Measure → Analyze → Plan → Test → Implement → Repeat.

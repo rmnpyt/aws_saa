@@ -1,0 +1,209 @@
+---
+title: "Architecture Scenarios: Practice Problems"
+module: "module-5-exam-prep"
+moduleTitle: "Module 5: Exam Preparation"
+slug: "architecture-scenarios"
+order: 3
+domain: 0
+taskStatements: []
+estimatedMinutes: 35
+difficulty: "advanced"
+tags: ["scenarios", "architecture", "practice", "decision-making"]
+services: []
+---
+
+## How to Use This Lesson
+
+For each scenario, try to answer it yourself before reading the solution. These represent the types of architecturaldecision questions you'll see on the exam.
+
+---
+
+## Scenario 1: Global Photo Sharing App
+
+**Scenario**: A company is building a photo sharing application that will serve millions of users globally. Users upload photos from mobile apps; other users view them in a feed. The company wants minimal operational overhead.
+
+**Requirements:**
+- Store millions of photos durably
+- Serve photos with low latency globally
+- Process uploaded photos (generate thumbnails, run moderation)
+- Highly available
+
+**Solution:**
+
+```
+Mobile App Upload:
+    → API Gateway + Lambda (generate presigned S3 URL)
+    → Direct S3 upload (via presigned URL)
+    → S3 Event Notification → SNS → SQS
+    → Lambda worker (thumbnail generation, moderation via Rekognition)
+
+Photo Serving:
+    → CloudFront distribution (cache photos at edge, global low latency)
+    → Origin: S3 bucket
+
+Database:
+    → DynamoDB (user profiles, photo metadata, feed data)
+    → DynamoDB Global Tables (for multi-region)
+```
+
+**Key decisions:**
+- Presigned URLs: Direct upload to S3 without going through your servers
+- CloudFront: Serve photos from edge (millisecond latency globally)
+- SNS + SQS fan-out: Multiple services process uploads independently
+- DynamoDB: Scales automatically for variable social app traffic
+
+---
+
+## Scenario 2: Enterprise Multi-Account Security
+
+**Scenario**: A large enterprise is moving to AWS. They have 500 developers across 20 teams. Requirements:
+- Developers shouldn't be able to create resources outside approved regions
+- All accounts must have GuardDuty enabled
+- Finance needs to see costs by team
+- Developers log in with their corporate Active Directory credentials
+
+**Solution:**
+
+```
+Structure:
+AWS Organizations with OU structure:
+    → Security OU (log archive, security tooling accounts)
+    → Production OU (production workloads)
+    → Development OU (team accounts)
+
+Access Management:
+    → IAM Identity Center + AWS Managed Microsoft AD (or AD Connector)
+    → Permission sets: Developer, ReadOnly, Administrator
+
+Controls:
+    → SCP on all OUs: Deny all actions with aws:RequestedRegion not in [approved regions]
+    → GuardDuty: Delegated admin in security account, member accounts auto-enrolled
+    → CloudTrail: Organization trail sending all logs to log archive account
+
+Cost:
+    → Tag policy enforcing Team tag
+    → Cost allocation tags: Team → Cost Explorer per-team view
+    → Budgets: Per-team monthly alerts
+```
+
+---
+
+## Scenario 3: E-Commerce Black Friday Spike
+
+**Scenario**: An e-commerce site normally processes 1,000 orders/minute but expects 50,000 orders/minute on Black Friday. The architecture must be cost-effective normally but handle the spike.
+
+**Requirements:**
+- Must handle 50x traffic spike
+- Orders must never be lost (even if backend is slow)
+- Cost-efficient day-to-day
+
+**Solution:**
+
+```
+Frontend (Web Tier):
+    → CloudFront → ALB → Auto Scaling Group (EC2 t3.medium baseline + Spot for burst)
+    → Scale from 2 instances to 50 on spike
+
+Order Processing (Decoupled):
+    → Web tier writes order to SQS FIFO queue (immediate response to user)
+    → SQS absorbs the 50x spike
+    → Order processing workers (separate ASG, scales based on queue depth)
+    → Scale from 5 workers to 200 based on SQS metric
+
+Database:
+    → DynamoDB On-Demand (scales instantly, no capacity planning)
+    → ElastiCache Redis for product catalog (avoids DB read pressure)
+
+Messaging:
+    → SNS fan-out after order confirmed: Inventory, Shipping, Email
+```
+
+**Key insight**: SQS decouples the web tier from the order processing tier. The web tier responds instantly ("Order placed!") while the back-end processes at whatever rate it can handle. Queue absorbs the spike.
+
+---
+
+## Scenario 4: HIPAA-Compliant Healthcare Application
+
+**Scenario**: A healthcare company is storing patient records in AWS. They must be HIPAA compliant.
+
+**HIPAA-relevant requirements:**
+- All data encrypted at rest and in transit
+- Audit logging of all data access
+- Detect unauthorized access attempts
+- Data cannot leave the country
+
+**Solution:**
+
+```
+Compute:
+    → EC2 in private subnets only
+    → No public-facing instances
+
+Storage:
+    → RDS with encryption enabled (SSE-KMS with CMK)
+    → S3 with SSE-KMS + Block Public Access
+    → EBS encrypted volumes
+
+Access:
+    → KMS CMK with key policy (explicit allow required)
+    → IAM roles with least privilege
+    → VPC Endpoints (no internet access to S3/DynamoDB)
+
+Audit:
+    → CloudTrail (all regions) → S3 with SSE-KMS + log file validation
+    → CloudWatch Logs for application logs
+    → SSE-KMS on S3: every object access logged in CloudTrail
+
+Threat Detection:
+    → GuardDuty enabled (all regions)
+    → Security Hub for centralized view
+    → Macie on S3 buckets containing PHI
+
+Region Control:
+    → SCP: Deny any action outside us-east-1 (or approved region)
+    → Only deploy in HIPAA BAA-eligible regions
+```
+
+---
+
+## Scenario 5: Cost Optimization for Development Environments
+
+**Scenario**: The company spends $50,000/month on development environments. These only need to run 9am-6pm weekdays. The finance team wants to reduce costs.
+
+**Solution:**
+
+```
+Identification:
+    → Tag all dev resources: Environment=dev
+    → Cost Explorer by tag: see dev spend breakdown
+
+Scheduled Shutdown:
+    → EventBridge scheduled rule: Weekdays at 6pm
+        → Lambda: Stop all EC2 instances tagged Environment=dev
+        → Lambda: Stop all RDS instances tagged Environment=dev
+    → EventBridge scheduled rule: Weekdays at 8am
+        → Lambda: Start all dev instances
+
+Additional savings:
+    → EC2: On-Demand → No Reserved (dev instances are stopped nights/weekends)
+    → RDS: Multi-AZ disabled for dev (no HA needed)
+    → RDS: Use db.t3.micro instead of db.r5.2xlarge
+    → Compute Optimizer: Right-size remaining dev EC2
+
+Expected savings:
+    → 9am-6pm = 9 hours / 24 hours = 37.5% of day
+    → Nights + weekends: 5 days × 15 hours + 2 days × 24 hours = 123/168 hours/week = 73% of week is off
+    → Expected cost reduction: ~60-70% on dev compute
+    → From $50,000 → ~$15,000-20,000/month
+```
+
+---
+
+## Key Architecture Principles to Remember
+
+1. **Decouple with SQS**: Any time a producer is faster than a consumer, put a queue between them
+2. **Stateless web tier**: Session data in ElastiCache → any instance can serve any user
+3. **Cache what you can**: ElastiCache for DB reads, CloudFront for static content
+4. **Event-driven**: S3 upload → SNS → SQS → Lambda = decoupled, scalable, no polling
+5. **Managed > self-managed**: RDS beats EC2+MySQL for operational simplicity
+6. **Multi-AZ for HA, multi-region for DR**: Don't confuse the two

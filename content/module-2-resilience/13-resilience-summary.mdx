@@ -1,0 +1,127 @@
+---
+title: "Domain 2 Resilience: Key Patterns & Review"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "resilience-summary"
+order: 13
+domain: 2
+taskStatements: ["2.1", "2.2"]
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["review", "patterns", "cheat-sheet", "resilience"]
+services: []
+---
+
+## Domain 2 at a Glance
+
+Domain 2 (Resilience) is worth **26% of the SAA-C03 exam**. The exam tests your ability to design systems that remain available and recover from failures.
+
+## Resilient Architecture Patterns
+
+### The Standard Web Tier (Multi-AZ)
+
+```
+Internet
+    ↓
+Route 53 (health check failover)
+    ↓
+Application Load Balancer (spans multiple AZs)
+    ↓
+Auto Scaling Group (EC2 instances across 2+ AZs)
+    ↓
+RDS Multi-AZ or Aurora (automatic DB failover)
+```
+
+This pattern handles AZ failures automatically with no manual intervention.
+
+### The Serverless Tier
+
+```
+API Gateway
+    ↓
+Lambda (auto-scales, inherently multi-AZ)
+    ↓
+DynamoDB (3-AZ replication, optional Global Tables)
+```
+
+No server management, automatic scaling from 0 to millions of requests.
+
+### The Event-Driven Resilient Pattern
+
+```
+Producer Service
+    ↓ (writes to)
+SQS Queue (absorbs spikes, DLQ for failures)
+    ↓ (triggers)
+Lambda / EC2 Workers (scale based on queue depth)
+    ↓
+Database / Storage
+```
+
+The queue decouples producers from consumers so failures don't cascade.
+
+## Quick Reference: DR Strategy Selection
+
+| RTO/RPO requirement | DR Strategy | Key AWS services |
+|---|---|---|
+| Hours | Backup & Restore | S3 CRR, AWS Backup |
+| 10s of minutes | Pilot Light | Minimal EC2, RDS read replica in DR region |
+| Minutes | Warm Standby | Reduced-scale copy always running |
+| Near zero | Multi-Site Active-Active | Route 53 latency routing, Aurora Global, DynamoDB Global |
+
+## Service Availability at a Glance
+
+| Service | Built-in HA | How |
+|---|---|---|
+| S3 | Yes | 11 nines durability, 3+ AZs |
+| DynamoDB | Yes | 3-AZ replication, automatic |
+| Aurora | Yes | 6 copies across 3 AZs |
+| Lambda | Yes | Multi-AZ by default |
+| SQS | Yes | Multi-AZ by default |
+| RDS Multi-AZ | Yes (if enabled) | Sync standby in another AZ |
+| EC2 | No | Must use ASG + multi-AZ subnets |
+| EBS | No | Tied to one AZ; use snapshots for DR |
+
+## Messaging Service Selection
+
+| If you need... | Use |
+|---|---|
+| Work queue (one consumer, order matters) | SQS FIFO |
+| Work queue (high volume, order not critical) | SQS Standard |
+| Fan-out to multiple services | SNS → multiple SQS queues |
+| Respond to AWS service events | EventBridge |
+| Real-time data streaming with multiple consumers | Kinesis Data Streams |
+| Load streaming data to S3/Redshift | Kinesis Data Firehose |
+| Orchestrate multi-step workflows | Step Functions |
+| Migrate ActiveMQ/RabbitMQ | Amazon MQ |
+
+## Route 53 Routing Policy Selection
+
+| Need | Policy |
+|---|---|
+| Automatic failover to backup | Failover |
+| Route to lowest-latency region | Latency-based |
+| Traffic split for A/B testing | Weighted |
+| Route by user's country | Geolocation |
+| Health-checked multi-endpoint | Multi-Value Answer |
+
+## Common Exam Traps
+
+1. **RDS Read Replicas are for reads, not failover** — Multi-AZ provides automatic failover; read replicas require manual promotion
+2. **DynamoDB doesn't need Multi-AZ configuration** — It's always 3-AZ replicated
+3. **Lambda is inherently HA** — No AZ configuration needed; AWS handles it
+4. **SQS standard queue can have duplicates** — Design consumers to be idempotent
+5. **Kinesis Data Firehose is NOT real-time** — Minimum 60-second buffer delay
+6. **FIFO queue has throughput limits** — 3,000 messages/s with batching (not unlimited like Standard)
+7. **NLB doesn't support WAF** — Attach WAF to ALB or CloudFront
+
+## Readiness Checklist
+
+After studying Domain 2, you should be able to:
+- [ ] Design a multi-AZ web application architecture
+- [ ] Choose the right DR strategy given RTO/RPO requirements
+- [ ] Explain when to use SQS, SNS, EventBridge, and Kinesis
+- [ ] Describe RDS Multi-AZ vs. Read Replicas
+- [ ] Design auto-scaling with ALB + ASG
+- [ ] Compare Lambda vs. ECS vs. EC2 for compute
+- [ ] Explain DynamoDB Global Tables for multi-region active-active

@@ -1,0 +1,154 @@
+---
+title: "Threat Detection & Compliance Services"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "threat-detection"
+order: 7
+domain: 1
+taskStatements: ["1.2", "1.3"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["guardduty", "inspector", "macie", "cloudtrail", "config", "security-hub"]
+services: ["Amazon GuardDuty", "Amazon Inspector", "Amazon Macie", "AWS CloudTrail", "AWS Config", "AWS Security Hub"]
+---
+
+## The Security Monitoring Stack
+
+AWS provides a layered set of services for threat detection, vulnerability scanning, and compliance monitoring. Each serves a distinct purpose — the exam tests whether you can identify the right one for a given scenario.
+
+## AWS CloudTrail
+
+**CloudTrail** records **every API call** made to your AWS account — who did what, when, and from where.
+
+**What it logs:**
+- Management events (control plane): Create/Delete/Modify operations on AWS resources
+- Data events (optional): S3 object-level operations, Lambda invocations, DynamoDB reads/writes
+- Insights events: Unusual activity patterns (too many failed logins, etc.)
+
+**Key facts:**
+- Enabled by default in all regions (90-day history for management events in Event History)
+- Create a Trail to persist logs to S3 (indefinitely) and/or CloudWatch Logs
+- Logs are JSON — searchable with CloudWatch Insights or Athena
+- **Tampering protection**: Enable log file validation to detect if logs were modified
+
+**Use CloudTrail for:**
+- Security incident investigation ("who deleted this S3 bucket?")
+- Compliance and audit evidence
+- Detecting unauthorized access (unusual API calls, root user activity)
+
+## AWS Config
+
+**Config** continuously monitors and records your **AWS resource configurations** and evaluates them against desired rules.
+
+**What it does:**
+- Takes configuration snapshots of your AWS resources
+- Records every configuration change
+- Evaluates resources against **Config Rules** (managed or custom Lambda-based)
+- Can trigger auto-remediation via Systems Manager Automation
+
+**Common managed rules:**
+- `s3-bucket-public-read-prohibited`
+- `restricted-ssh` (no security groups allowing SSH from 0.0.0.0/0)
+- `rds-multi-az-support`
+- `iam-password-policy`
+
+**CloudTrail vs. Config:**
+- CloudTrail: **WHO** did **WHAT** and **WHEN** (API calls)
+- Config: **WHAT is the current/historical configuration of my resources?**
+
+<ExamTip>
+"A compliance team wants to know if any S3 bucket has had public access enabled in the last 30 days." → AWS Config (resource configuration history + rules). "Who enabled it and when?" → CloudTrail (API call audit log).
+</ExamTip>
+
+## Amazon GuardDuty
+
+**GuardDuty** is an intelligent threat detection service that uses ML to analyze:
+- AWS CloudTrail events
+- VPC Flow Logs
+- DNS logs
+- S3 data events (optional)
+- EKS audit logs (optional)
+
+**What it detects:**
+- Cryptocurrency mining on EC2 instances
+- Unusual API calls from unusual locations
+- Compromised IAM credentials being used from another country
+- Port scanning and brute-force attacks
+- Data exfiltration to suspicious IPs
+- Malware on EC2 (via GuardDuty Malware Protection)
+
+**No agents required** — GuardDuty reads AWS logs, not your application logs.
+
+**Finding severity**: Low / Medium / High. High-severity findings should trigger automated remediation.
+
+## Amazon Inspector
+
+**Inspector** is an automated **vulnerability scanning** service for:
+- **EC2 instances**: Scans OS packages for CVEs, checks network reachability
+- **Container images in ECR**: Scans for software vulnerabilities before deployment
+- **Lambda functions**: Scans code and dependencies for vulnerabilities
+
+Inspector uses the **AWS Systems Manager Agent (SSM Agent)** on EC2 for detailed software inventory scanning. It continuously rescans when new CVEs are discovered or when you update packages.
+
+**Inspector vs. GuardDuty:**
+- Inspector: Proactive — finds vulnerabilities **before** they're exploited
+- GuardDuty: Reactive — detects active threats and anomalous behavior
+
+## Amazon Macie
+
+**Macie** uses ML to **discover and protect sensitive data in S3**. It:
+- Continuously scans S3 buckets
+- Identifies sensitive data types: PII (names, SSNs, credit cards), credentials, intellectual property
+- Alerts on publicly accessible buckets or unencrypted buckets
+- Generates detailed findings with sample sensitive data
+
+**When to use Macie:**
+- PCI DSS compliance (credit card data)
+- GDPR/HIPAA compliance (personal data)
+- Data governance and DLP (Data Loss Prevention)
+
+## AWS Security Hub
+
+**Security Hub** is a **central dashboard** that aggregates security findings from multiple AWS services and third-party tools:
+- GuardDuty
+- Inspector
+- Macie
+- IAM Access Analyzer
+- Firewall Manager
+- Third-party tools (Splunk, Palo Alto, etc.)
+
+Security Hub evaluates your resources against **security standards**:
+- AWS Foundational Security Best Practices
+- CIS AWS Foundations Benchmark
+- PCI DSS
+
+## Amazon Detective
+
+**Detective** helps you investigate and analyze **root cause of security incidents**. It:
+- Automatically ingests GuardDuty, CloudTrail, VPC Flow Logs
+- Creates a graph database of behavioral relationships
+- Lets you visualize "what happened around the time of the finding?"
+
+Detective answers "HOW did this happen?" while GuardDuty answers "IS something suspicious happening?"
+
+## Service Decision Summary
+
+| Question | Service |
+|---|---|
+| Who called the `DeleteBucket` API? | CloudTrail |
+| Is any S3 bucket publicly accessible? | AWS Config |
+| Is an EC2 instance communicating with a known malware C2 server? | GuardDuty |
+| Does an EC2 instance have unpatched critical vulnerabilities? | Inspector |
+| Are there credit card numbers stored in my S3 bucket? | Amazon Macie |
+| Where do I see all security findings in one place? | Security Hub |
+| How did an attacker move through my account after GuardDuty alerted? | Detective |
+
+## Summary
+
+- **CloudTrail**: API call audit log — who did what, when
+- **Config**: Resource configuration history and compliance rules
+- **GuardDuty**: ML-based threat detection from logs — detects active attacks
+- **Inspector**: Vulnerability scanning for EC2, ECR, Lambda
+- **Macie**: Sensitive data discovery in S3 (PII, credentials)
+- **Security Hub**: Central findings dashboard across all security services
+- **Detective**: Incident investigation and root cause analysis

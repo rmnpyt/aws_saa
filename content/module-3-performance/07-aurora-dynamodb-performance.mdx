@@ -1,0 +1,144 @@
+---
+title: "Database Performance: Aurora & DynamoDB"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "aurora-dynamodb-performance"
+order: 7
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 40
+difficulty: "advanced"
+tags: ["aurora", "dynamodb", "performance", "gsi", "lsi", "indexes", "global-tables"]
+services: ["Amazon Aurora", "Amazon DynamoDB"]
+---
+
+## Aurora Performance Deep Dive
+
+### Why Aurora Outperforms Standard RDS
+
+Aurora uses a shared storage volume architecture that decouples storage from compute:
+
+| Aspect | Standard RDS | Aurora |
+|---|---|---|
+| **Write path** | Writes to one EBS volume | Writes 6 copies across 3 AZs (4/6 quorum) |
+| **Read replicas** | Each replica has its own storage | All replicas share the same storage layer |
+| **Failover** | New primary re-attaches EBS, binlog replay | Near-instant — shared storage, no log replay |
+| **Storage scaling** | Manual (provision more EBS) | Automatic (10 GB to 128 TB) |
+| **Performance** | Standard | 3x PostgreSQL, 5x MySQL |
+
+### Aurora Read Scaling
+
+Aurora supports up to **15 read replicas** — all sharing the same storage volume:
+- Adding a replica doesn't increase storage (shared) — extremely fast to provision
+- **Aurora Auto Scaling**: Automatically adds/removes read replicas based on CPU or connection count
+- **Reader endpoint**: Load balances across all available replicas
+
+### Aurora Parallel Query
+
+**Parallel Query** pushes query processing to the storage layer:
+- Multiple storage nodes process parts of a query simultaneously
+- For analytics queries scanning large datasets on the same cluster as OLTP workloads
+- Prevents analytics from impacting OLTP performance
+
+### Aurora Backtrack
+
+**Backtrack** (MySQL-compatible Aurora only) lets you quickly rewind the database to a point in the past without restoring from a backup:
+- Maximum backtrack window: 72 hours
+- Rewinds in-place (same database, no new cluster)
+- Use case: Quickly undo accidental data modifications
+
+## DynamoDB Performance Design
+
+DynamoDB performance is 99% about **data modeling** — choosing the right partition key and access patterns.
+
+### Partition Key Selection
+
+DynamoDB distributes data across partitions based on the partition key. A good partition key:
+- Has **high cardinality** (many unique values) — prevents hotspots
+- Is **uniformly accessed** — no single value receives most traffic
+
+**Bad partition key examples:**
+- `status` (only 3 values: pending/active/closed → all traffic to 3 partitions)
+- `date` (ISO date → all today's writes go to one partition)
+- `user_type` (few values)
+
+**Good partition key examples:**
+- `user_id` (UUID — millions of values, uniformly distributed)
+- `order_id` (UUID per order)
+- `device_id` (unique per device)
+
+### Composite Key (Partition Key + Sort Key)
+
+Adding a **sort key** allows multiple items with the same partition key:
+
+```
+Table: Messages
+Partition Key: user_id    Sort Key: timestamp
+
+user_id=alice, timestamp=2024-01-01  → Message 1
+user_id=alice, timestamp=2024-01-02  → Message 2
+user_id=bob,   timestamp=2024-01-01  → Message 3
+```
+
+Query: "All messages for alice, after 2024-01-01" → efficient range query on sort key.
+
+### Global Secondary Indexes (GSI)
+
+**GSI** lets you query on attributes that are NOT the primary key:
+
+```
+Table: Orders (PK: order_id)
+GSI "by-customer": PK: customer_id, SK: order_date
+
+→ Query: all orders for customer_id="alice", sorted by date → efficient via GSI
+```
+
+- GSI is eventually consistent (slight lag)
+- Has its own capacity (provisioned or on-demand)
+- Can have different partition and sort keys than the main table
+- Up to 20 GSIs per table
+
+### Local Secondary Indexes (LSI)
+
+**LSI** provides an alternate sort key for the same partition key:
+- Same partition key as main table, different sort key
+- **Strongly consistent reads** supported (unlike GSI)
+- Must be created at table creation time (cannot add later)
+- Up to 5 LSIs per table
+
+<ExamTip>
+"Query DynamoDB on a different attribute than the primary key" → **GSI**. "Query with the same partition key but different sort key" → **LSI** (for strong consistency, must create at table time).
+</ExamTip>
+
+### Adaptive Capacity & Burst
+
+DynamoDB automatically moves capacity to "hot" partitions — if one partition consistently gets more traffic, DynamoDB shifts capacity to it automatically.
+
+**Burst capacity**: DynamoDB reserves up to 5 minutes of unused capacity for burst traffic.
+
+### DynamoDB Transactions
+
+**DynamoDB Transactions** (ACID):
+- `TransactWriteItems`: Atomic writes to multiple items (across tables)
+- `TransactGetItems`: Atomic reads of multiple items
+- All succeed or all fail
+- Use for: Financial transfers, inventory updates, multi-step operations requiring consistency
+
+Transactions consume 2x read/write capacity units.
+
+### DynamoDB On-Demand vs. Provisioned
+
+For performance-sensitive workloads:
+- **Provisioned + Auto Scaling**: Predictable, can tune for cost and capacity
+- **On-Demand**: For unpredictable workloads — scales instantly but more expensive per request
+
+**On-Demand pricing**: ~6x more expensive per read, ~2x more expensive per write vs. provisioned. Worth it for truly unpredictable workloads.
+
+## Summary
+
+- **Aurora**: Shared storage, 15 read replicas, auto-scaling. 3x-5x faster than standard RDS.
+- **Backtrack**: Roll back Aurora to a point in time without restore (MySQL only, max 72 hours).
+- **Partition key**: Choose high-cardinality, uniformly distributed keys.
+- **GSI**: Query on non-key attributes. Eventually consistent.
+- **LSI**: Alternate sort key. Strongly consistent. Must create at table creation.
+- **Transactions**: ACID across multiple items. 2x capacity cost.

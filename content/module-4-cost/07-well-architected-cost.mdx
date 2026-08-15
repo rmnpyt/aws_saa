@@ -1,0 +1,115 @@
+---
+title: "Well-Architected Cost Optimization Pillar"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "well-architected-cost"
+order: 7
+domain: 4
+taskStatements: ["4.1", "4.2"]
+estimatedMinutes: 25
+difficulty: "beginner"
+tags: ["well-architected", "cost-optimization", "cloud-financial-management", "finops"]
+services: ["AWS Well-Architected Tool"]
+---
+
+## The Cost Optimization Pillar
+
+The **Well-Architected Framework's Cost Optimization pillar** provides best practices for running systems to deliver business value at the lowest cost.
+
+**Five design principles:**
+
+1. **Implement cloud financial management**: Build a culture of cost accountability across engineering and finance
+2. **Adopt a consumption model**: Pay for only what you use; turn off resources when not needed
+3. **Measure overall efficiency**: Track business value delivered per dollar spent
+4. **Stop spending money on undifferentiated heavy lifting**: Use managed services instead of running your own
+5. **Analyze and attribute expenditure**: Use tagging and Cost Explorer to understand where money goes
+
+## Cloud Financial Management (FinOps)
+
+**FinOps** (Financial Operations) is the practice of bringing engineering, finance, and business teams together to manage cloud costs:
+
+- **Engineer**: Builds cost-efficient systems
+- **Finance**: Tracks and forecasts cloud spend
+- **Product**: Understands cost per feature/customer
+
+AWS Cost Explorer and Budgets support this by giving all teams visibility into spending.
+
+## Managed Services as Cost Optimization
+
+"Stop spending money on undifferentiated heavy lifting" means using managed services:
+
+| Instead of | Use |
+|---|---|
+| Self-managed Kafka cluster on EC2 | Amazon MSK (managed Kafka) |
+| Self-managed MySQL on EC2 | Amazon RDS or Aurora |
+| Self-managed Redis cluster | Amazon ElastiCache |
+| Self-managed load balancer | AWS ALB/NLB |
+| Self-managed CI/CD server (Jenkins) | AWS CodePipeline + CodeBuild |
+| Self-managed Elasticsearch | Amazon OpenSearch Service |
+
+Self-managed services consume engineering time and carry operational risk — managed services transfer that to AWS.
+
+## Pricing Model Selection for Cost Optimization
+
+| Usage pattern | Optimal model |
+|---|---|
+| Steady-state, predictable | Reserved Instances / Savings Plans |
+| Interruptible batch jobs | Spot Instances |
+| Irregular, unpredictable | On-Demand |
+| Scaling variable load | On-Demand base + Spot for spikes |
+| Short-term spike | On-Demand or Spot |
+
+**Rule of thumb**: Anything running >1 year should be Reserved or Savings Plans. Anything fault-tolerant should consider Spot.
+
+## Measure and Monitor
+
+**Metrics to track:**
+- Cost per customer/transaction/request
+- Resource utilization rate (CPU, memory, storage)
+- RI/Savings Plan utilization and coverage
+- Idle resource count
+
+**AWS tools:**
+- **Cost Explorer**: Historical and forecast spending
+- **Cost Anomaly Detection**: Unexpected cost spikes
+- **Trusted Advisor**: Identifies underutilized resources
+- **Compute Optimizer**: Right-sizing recommendations
+- **CloudWatch**: Resource utilization metrics
+
+## Architectural Patterns for Cost
+
+### Event-Driven (Pay per event, not for idle)
+```
+API Gateway + Lambda + DynamoDB
+= Zero cost when no traffic, scales linearly with usage
+```
+
+### Serverless-first approach
+Before choosing EC2, ask: Can this be Lambda? Can this be Fargate? Can this be a managed service?
+
+### Elasticity for variable workloads
+```
+Auto Scaling Group + Spot Instances
+= Scales down at night (no cost), Spot for daytime peaks (up to 90% discount)
+```
+
+## The Well-Architected Review (Cost Perspective)
+
+Key questions from the Cost Optimization pillar:
+
+- Are you using the right pricing model for each workload?
+- Do you have mechanisms to automatically decommission unused resources?
+- Are your workloads right-sized (not over-provisioned)?
+- Do you have cost allocation through tagging?
+- Do you track cost efficiency over time?
+
+The **AWS Well-Architected Tool** (free in the console) guides you through these questions and generates a report with high/medium/low risk items.
+
+## Summary
+
+- **Cost Optimization pillar**: Consumption model, managed services, tagging, RI/Savings Plans, right-sizing.
+- **FinOps**: Collaboration between engineering, finance, and product for cost accountability.
+- **Managed services**: Eliminate operational overhead and often cheaper than self-managed.
+- **Reserved/Savings Plans**: For >1-year commitments. Up to 72% vs. On-Demand.
+- **Spot**: For fault-tolerant workloads. Up to 90% discount.
+- **Serverless-first**: Lambda + DynamoDB = pay per request, scale to zero.

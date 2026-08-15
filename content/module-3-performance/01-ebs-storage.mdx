@@ -1,0 +1,101 @@
+---
+title: "EBS: Block Storage Performance"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "ebs-storage"
+order: 1
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["ebs", "block-storage", "gp3", "io2", "nvme", "iops"]
+services: ["Amazon EBS"]
+---
+
+## What is EBS?
+
+**Amazon EBS (Elastic Block Store)** provides persistent block storage for EC2 instances. Think of it as a network-attached hard drive:
+- Lives in one AZ (same AZ as the EC2 instance)
+- Persists independently from the EC2 instance — instance can be stopped/started and data remains
+- Can be detached and re-attached to another instance in the same AZ
+- Volumes are automatically replicated within the AZ for hardware fault tolerance
+
+## EBS Volume Types
+
+### SSD-Backed (for IOPS-intensive workloads)
+
+| Volume Type | Use case | Max IOPS | Max Throughput | Notes |
+|---|---|---|---|---|
+| **gp3** (General Purpose) | Most workloads, boot volumes | 16,000 IOPS | 1,000 MB/s | Independently set IOPS and throughput |
+| **gp2** (General Purpose) | Legacy general purpose | 16,000 IOPS | 250 MB/s | IOPS linked to volume size (3 IOPS/GB) |
+| **io2 Block Express** | Mission-critical DBs | 256,000 IOPS | 4,000 MB/s | 99.999% durability |
+| **io1** | I/O intensive databases | 64,000 IOPS | 1,000 MB/s | Legacy provisioned IOPS |
+
+### HDD-Backed (for throughput-intensive workloads)
+
+| Volume Type | Use case | Max IOPS | Max Throughput |
+|---|---|---|---|
+| **st1** (Throughput Optimized) | Big data, data warehouses, log processing | 500 | 500 MB/s |
+| **sc1** (Cold HDD) | Infrequently accessed data, lowest cost | 250 | 250 MB/s |
+
+**Key rule**: HDD volumes **cannot be boot volumes** (gp2/gp3/io1/io2 can be).
+
+<ExamTip>
+**gp3 is the default choice for most workloads.** It allows you to independently scale IOPS and throughput (unlike gp2 where IOPS is tied to size). For databases needing consistent IOPS, use **io1 or io2**. For large sequential reads/writes (log processing, analytics), use **st1**.
+</ExamTip>
+
+## EBS Multi-Attach
+
+**Multi-Attach** allows an io1/io2 volume to be attached to up to 16 instances **in the same AZ**:
+- All instances read AND write to the same volume
+- Requires a cluster-aware file system (not ext4/NTFS — use a clustered FS)
+- Use case: High-availability applications managing their own storage coordination (Oracle RAC)
+
+## EBS Snapshots
+
+**Snapshots** capture the state of an EBS volume at a point in time:
+- **Incremental**: Only blocks changed since the last snapshot are saved
+- **Stored in S3** (managed by AWS — you don't see them in your bucket)
+- **Cross-region copy**: Copy snapshots to another region for DR
+- **Create volume from snapshot**: Restore to any point in time
+- **EBS Fast Snapshot Restore (FSR)**: Eliminates the latency when creating a volume from a snapshot (fully initialized from the start). Enable per-AZ, costs more.
+
+**Snapshot lifecycle**: Use Data Lifecycle Manager (DLM) to automate snapshot creation and deletion.
+
+## EC2 Instance Store
+
+**Instance store** is ephemeral (temporary) storage physically attached to the host EC2 instance:
+- **Performance**: Much faster than EBS (NVMe, millions of IOPS)
+- **Persistence**: **NOT persistent** — data is lost when the instance stops, terminates, or fails
+- **Use case**: Temporary data, caches, scratch space, buffers
+
+**When to use instance store:**
+- Temporary buffers or caches that can be reconstructed
+- Applications with replication built in (Cassandra, Hadoop) — data loss on one node is OK
+- High-performance, I/O intensive workloads where EBS latency is a bottleneck
+
+<ExamTip>
+Instance store = fast, not persistent. EBS = persistent, slightly slower. The exam will ask about scenarios where you need fast temporary storage → instance store, or persistent storage → EBS.
+</ExamTip>
+
+## EBS Performance Optimization
+
+**RAID 0**: Stripe multiple EBS volumes for higher IOPS and throughput:
+- N volumes = N times the IOPS (up to EC2 limits)
+- No redundancy — if one volume fails, all data is lost
+- Use RAID 0 when IOPS from a single volume isn't enough
+
+**RAID 1**: Mirror two volumes for redundancy (not needed — EBS already replicates within AZ).
+
+**EBS-Optimized instances**: Dedicated bandwidth between EC2 and EBS. Most modern instance types include this by default — always enable for production.
+
+**Nitro instances**: EC2 instances using the Nitro hypervisor support higher EBS IOPS and network performance. All modern instance families (m5, c5, r5, etc.) are Nitro.
+
+## Summary
+
+- **gp3**: Default for most workloads. Independent IOPS + throughput configuration.
+- **io2**: High IOPS, consistent performance, mission-critical databases.
+- **st1**: Throughput-optimized HDD. Big data, sequential reads.
+- **sc1**: Cold HDD, infrequent access, lowest cost.
+- **Snapshots**: Incremental, cross-region, foundation for backup and DR.
+- **Instance store**: Fast, temporary, non-persistent. Great for caches and scratch data.

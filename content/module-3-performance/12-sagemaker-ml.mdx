@@ -1,0 +1,101 @@
+---
+title: "Machine Learning Services Overview"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "sagemaker-ml"
+order: 12
+domain: 3
+taskStatements: ["3.2"]
+estimatedMinutes: 25
+difficulty: "intermediate"
+tags: ["sagemaker", "machine-learning", "ai-services", "rekognition", "textract"]
+services: ["Amazon SageMaker", "Amazon Rekognition", "Amazon Textract", "Amazon Comprehend"]
+---
+
+## AWS AI/ML Service Levels
+
+AWS provides AI/ML capabilities at three levels:
+
+1. **AI Services (pre-built)**: Ready-to-use APIs, no ML knowledge needed
+2. **ML Platform (SageMaker)**: Build, train, and deploy custom ML models
+3. **Frameworks**: TensorFlow, PyTorch, MXNet on EC2/ECS
+
+## Pre-Built AI Services
+
+For the SAA exam, know which service does what:
+
+| Service | What it does | Common use case |
+|---|---|---|
+| **Rekognition** | Image and video analysis | Facial recognition, object detection, content moderation, celebrity detection |
+| **Textract** | Extract text and structure from documents | Processing scanned forms, invoices, ID documents |
+| **Comprehend** | NLP — sentiment analysis, entity extraction | Analyze customer reviews, extract key phrases from documents |
+| **Translate** | Language translation | Multi-language applications |
+| **Transcribe** | Speech to text | Automatic captions, call center transcription |
+| **Polly** | Text to speech | Voice-enable applications, audio content |
+| **Lex** | Conversational AI (chatbots) | Customer service chatbots, Alexa-like experiences |
+| **Kendra** | Intelligent document search | Enterprise document search powered by ML |
+| **Personalize** | Personalized recommendations | "Users who bought X also bought Y" |
+| **Forecast** | Time-series forecasting | Demand forecasting, inventory planning |
+| **Fraud Detector** | ML-powered fraud detection | Credit card fraud, account takeover detection |
+
+## Amazon SageMaker
+
+**SageMaker** is the complete ML platform for building, training, and deploying custom models:
+
+### Key SageMaker Components
+
+| Component | Purpose |
+|---|---|
+| **SageMaker Studio** | Unified IDE for ML development |
+| **Data Wrangler** | Visual data preparation and feature engineering |
+| **Feature Store** | Centralized store for ML features |
+| **Training** | Distributed training on EC2/GPU instances |
+| **Automatic Model Tuning** | Hyperparameter optimization (Bayesian search) |
+| **Clarify** | Model explainability, bias detection |
+| **Model Registry** | Version and track ML models |
+| **SageMaker Endpoints** | Deploy models for real-time inference |
+| **Batch Transform** | Run inference on large datasets at once |
+| **Pipelines** | CI/CD for ML workflows |
+| **Ground Truth** | Data labeling with human workforce |
+
+### SageMaker Endpoints
+
+**Real-time endpoints**: Persistent, auto-scaling endpoint for low-latency inference:
+- Scale based on invocations, CPU, GPU
+- Deploy multiple models behind one endpoint (multi-model endpoints)
+
+**Serverless Inference**: Scales to zero, billed per request. Best for infrequent inference.
+
+**Batch Transform**: Process entire datasets asynchronously. No persistent endpoint.
+
+## High-Performance ML Architecture
+
+For large-scale ML training:
+```
+Data: S3 → FSx for Lustre (high-speed data access for training)
+    ↓
+Training: EC2 P4d instances (A100 GPUs) in Cluster Placement Group
+    + EFA (Elastic Fabric Adapter for inter-GPU communication)
+    ↓
+Model: Store in S3 → Register in SageMaker Model Registry
+    ↓
+Inference: SageMaker Endpoint (G4dn instances for GPU inference)
+    or
+Inference: AWS Inferentia instances (cheaper for inference)
+```
+
+## Amazon Bedrock (Generative AI)
+
+**Amazon Bedrock** provides access to foundation models (LLMs) via API:
+- Models from Anthropic (Claude), Amazon (Titan), Meta (Llama), Stability AI
+- No ML infrastructure to manage
+- **Knowledge Bases**: RAG (Retrieval-Augmented Generation) — connect LLM to your data in S3
+- **Agents**: LLMs that can call APIs and take actions
+
+## Summary
+
+- **AI Services**: Pre-built APIs. No ML needed. Rekognition (images), Textract (documents), Comprehend (NLP), Lex (chatbots).
+- **SageMaker**: Full ML platform. Build, train, tune, deploy custom models.
+- **High-performance training**: P4d + EFA + Cluster Placement Group + FSx for Lustre.
+- **Inference optimization**: G4dn for GPU inference, Inf1/Inf2 for CPU-equivalent ML inference.
+- **Bedrock**: Managed access to large foundation models (Claude, Llama, Titan).

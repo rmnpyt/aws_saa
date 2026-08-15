@@ -1,0 +1,123 @@
+---
+title: "Domain 4 Cost: Key Patterns & Review"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "cost-summary"
+order: 10
+domain: 4
+taskStatements: ["4.1", "4.2"]
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["review", "cheat-sheet", "cost-optimization"]
+services: []
+---
+
+## Domain 4 at a Glance
+
+Domain 4 (Cost Optimization) is worth **20% of the SAA-C03 exam**. Questions ask you to choose the most cost-effective solution for a given scenario.
+
+## The Cost Optimization Hierarchy
+
+1. **Eliminate waste**: Unused resources, idle instances, unattached volumes
+2. **Right-size**: Match resource to actual usage
+3. **Choose the right purchasing model**: On-Demand vs. Reserved vs. Spot vs. Savings Plans
+4. **Use managed services**: Less operational cost than self-managed
+5. **Architectural patterns**: Serverless, event-driven, caching reduce per-request costs
+
+## EC2 Purchasing Model Selection
+
+| Scenario | Model |
+|---|---|
+| Steady-state production workload (>1 year) | Reserved Instance or Savings Plans |
+| Variable, unpredictable production traffic | On-Demand (baseline) + Spot (peaks) |
+| Fault-tolerant batch jobs | Spot |
+| Dev/test short-term | On-Demand |
+| Per-socket licensing (SQL Server, Oracle) | Dedicated Host + RI |
+| Unknown future instance type needs | Compute Savings Plans or Convertible RI |
+
+## Storage Cost Selection
+
+| Need | Most cost-effective |
+|---|---|
+| Frequently accessed data | S3 Standard |
+| Infrequently accessed, need fast retrieval | S3 Standard-IA or Glacier Instant |
+| Long-term archive, occasional access | S3 Glacier Flexible |
+| Compliance archive (7+ years) | S3 Glacier Deep Archive |
+| Unknown access pattern | S3 Intelligent-Tiering |
+| Block storage (EC2, temp) | gp3 default; io2 for high IOPS; instance store for temp |
+| Shared Linux file storage | EFS with lifecycle to IA |
+
+## Network Cost Optimization Checklist
+
+- [ ] Use S3 Gateway Endpoint (free) instead of NAT Gateway for S3 access
+- [ ] Use CloudFront for internet delivery (cheaper per-GB than direct EC2/S3)
+- [ ] Minimize cross-AZ traffic (same-AZ ElastiCache and databases where possible)
+- [ ] Use Direct Connect for high-volume data transfer (cheaper than internet at scale)
+- [ ] Avoid unnecessary data transfer between regions
+
+## Database Cost Decision
+
+| Workload | Most cost-effective |
+|---|---|
+| Steady relational DB (>1 year) | RDS or Aurora + Reserved |
+| Variable relational DB | Aurora Serverless v2 |
+| Steady key-value | DynamoDB Provisioned + Auto-Scaling + Reserved |
+| Unpredictable key-value | DynamoDB On-Demand |
+| Read-heavy database | Add ElastiCache (cache reduces DB queries) |
+| Analytics on S3 data | Athena (no DB needed, $5/TB scanned) |
+
+## Service Cost Decision Summary
+
+| Instead of | Consider |
+|---|---|
+| 24/7 EC2 for short tasks | Lambda (pay per 100ms) |
+| Always-on server | Serverless architecture |
+| Self-managed MySQL on EC2 | Amazon RDS (no DB admin cost) |
+| Custom load balancer on EC2 | AWS ALB (cheaper, managed) |
+| NAT Gateway for S3 access | S3 Gateway Endpoint (free) |
+| Pulling same data from DB repeatedly | ElastiCache (reduce DB load 90%+) |
+| Sending large files over NAT | Direct upload to S3 via presigned URL |
+
+## Key Cost Formulas
+
+**RI vs. On-Demand break-even:**
+```
+Break-even = RI upfront cost / (Monthly On-Demand - Monthly RI cost)
+If you'll use the instance for longer → Reserved is cheaper
+```
+
+**Spot savings:**
+```
+If workload takes 10 hours on On-Demand
+And Spot is 70% cheaper:
+Use Spot → save 70% (but handle possible interruptions)
+```
+
+**NAT Gateway vs. Gateway Endpoint:**
+```
+1 TB S3 traffic/day via NAT Gateway: 
+$0.045/GB × 1,000 GB = $45/day = $1,350/month
+
+Same traffic via Gateway Endpoint: $0/month
+Annual savings: $16,200
+```
+
+## Common Exam Traps
+
+1. **Reserved Instances don't guarantee capacity** — they provide a billing discount, not a reservation
+2. **Spot Instances CAN be used in ASG** — use mixed instances policy with both On-Demand and Spot
+3. **Savings Plans work for Lambda and Fargate** — Compute Savings Plans, not just EC2
+4. **S3 One Zone-IA** — good for reproduced data, NOT for primary copies
+5. **Intelligent-Tiering has monitoring fee** — for small objects, Standard-IA lifecycle rules may be cheaper
+6. **Cross-AZ data transfer IS charged** — even within the same VPC
+7. **DynamoDB On-Demand is more expensive per request** — only use when traffic is truly unpredictable
+
+## Readiness Checklist
+
+- [ ] Choose the right EC2 pricing model for different workload types
+- [ ] Select S3 storage classes based on access frequency and retrieval needs
+- [ ] Explain when to use S3 Gateway Endpoint vs. NAT Gateway
+- [ ] Describe when serverless (Lambda) is more cost-effective than EC2
+- [ ] Know the difference between Standard and Convertible Reserved Instances
+- [ ] Explain how Compute Savings Plans differ from EC2 Instance Savings Plans
+- [ ] Use tagging to implement cost allocation and governance

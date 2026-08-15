@@ -1,0 +1,131 @@
+---
+title: "Network Cost Optimization"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "network-cost"
+order: 5
+domain: 4
+taskStatements: ["4.2"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["data-transfer", "nat-gateway", "vpc-endpoints", "cloudfront", "networking-cost"]
+services: ["Amazon VPC", "Amazon CloudFront", "AWS Direct Connect"]
+---
+
+## AWS Networking Cost Structure
+
+Understanding where data transfer costs come from:
+
+| Transfer type | Cost |
+|---|---|
+| **Inbound from internet** | Free |
+| **Outbound to internet** | From $0.09/GB (varies by region) |
+| **Between AZs in same region** | $0.01/GB each direction |
+| **Between regions** | From $0.02/GB |
+| **Within same AZ** | Free (private IP) |
+| **Via NAT Gateway** | $0.045/GB processed + $0.045/hour |
+| **Via VPC Endpoint (Gateway)** | Free |
+| **Via VPC Endpoint (Interface)** | $0.01/GB |
+| **Direct Connect (data out)** | Lower than internet ($0.02/GB vs $0.09/GB) |
+
+## High-Cost NAT Gateway Traffic
+
+NAT Gateway is a significant cost driver for workloads with heavy outbound internet traffic:
+
+**What NAT Gateway charges:**
+- $0.045/hour per NAT Gateway (in each AZ)
+- $0.045/GB of data processed
+
+For a service making 1 TB of API calls per day through a NAT Gateway:
+```
+$0.045/GB × 1,000 GB = $45/day = $1,350/month
+```
+
+## Eliminating NAT Costs with VPC Endpoints
+
+**Gateway Endpoints** (for S3 and DynamoDB) are free and bypass NAT entirely:
+
+**Without Gateway Endpoint:**
+```
+Private EC2 → NAT Gateway ($0.045/GB) → Internet → S3
+```
+
+**With Gateway Endpoint:**
+```
+Private EC2 → VPC Gateway Endpoint (FREE) → S3 (stays on AWS network)
+```
+
+**Savings**: For workloads heavily accessing S3 or DynamoDB from private subnets, Gateway Endpoints pay for themselves immediately.
+
+**Interface Endpoints** (for other services like CloudWatch, Secrets Manager) cost $0.01/GB — still much less than NAT Gateway.
+
+<ExamTip>
+Anytime a question mentions EC2 instances in private subnets frequently accessing S3, the cost-optimization answer includes **S3 Gateway Endpoint**. It's free and eliminates NAT Gateway processing costs for S3 traffic.
+</ExamTip>
+
+## Cross-AZ Traffic Costs
+
+Every gigabyte transferred between AZs costs $0.01 in each direction ($0.02 total round trip):
+
+**Cost reduction strategies:**
+
+1. **Use same-AZ resources where possible**: Place ElastiCache and RDS in the same AZ as the EC2 instances that use them most. (Trade-off: reduced HA)
+
+2. **Enable cross-zone load balancing on NLB only when needed**: NLB charges $0.01/GB for cross-zone balancing. ALB is free. For NLB, disabling cross-zone load balancing keeps traffic within AZs.
+
+3. **Put your cache close to your app**: ElastiCache in the same AZ reduces cross-AZ calls.
+
+## CloudFront for Cost Reduction
+
+**CloudFront reduces outbound internet data transfer costs**:
+- Traffic served from CloudFront edges is cheaper than direct S3/EC2 outbound
+- CloudFront to internet: From $0.0085/GB (vs $0.09/GB direct from S3)
+- **CloudFront → S3 within same region**: Free
+
+**Additionally**, CloudFront caching reduces origin requests:
+- 90% cache hit rate = 90% fewer requests hitting your servers
+- Lower EC2/Lambda costs, lower database queries, lower NAT Gateway costs
+
+## Direct Connect vs. Internet for Data Transfer
+
+For organizations regularly transferring large amounts of data to/from AWS:
+
+| | Internet | Direct Connect |
+|---|---|---|
+| Data out cost | ~$0.09/GB | ~$0.02/GB |
+| For 100 TB/month | ~$9,000/month | ~$2,000/month + port fees |
+
+At sufficient volume, Direct Connect pays for itself.
+
+## Multi-Region Data Transfer
+
+Minimize cross-region traffic by:
+- Serving users from the nearest region (CloudFront, Route 53 latency routing)
+- Keeping all services for a region together (don't have us-east-1 EC2 talking to eu-west-1 RDS)
+- Using Regional SQS/SNS queues instead of cross-region calls
+
+## Transit Gateway Cost Considerations
+
+Transit Gateway charges:
+- $0.05/hour per VPC attachment
+- $0.02/GB of data processed
+
+For small VPC-to-VPC traffic, VPC Peering may be cheaper:
+- VPC Peering: Free (just cross-AZ data transfer costs if applicable)
+
+## S3 Request Cost Optimization
+
+List operations are expensive at scale: `LIST` costs $0.005 per 1,000 requests.
+
+Alternatives:
+- Use **S3 Inventory** (daily/weekly listing at $0.0025/million objects) vs. frequent LIST API calls
+- Use proper key prefixes to avoid listing large numbers of objects
+- Use **S3 Select** to reduce data scanned (and thus transfer costs)
+
+## Summary
+
+- **NAT Gateway**: $0.045/GB processed. Replace with Gateway Endpoints for S3/DynamoDB access.
+- **S3 Gateway Endpoint**: Free. Eliminates NAT costs for S3 from private subnets.
+- **Cross-AZ**: $0.01/GB each direction. Minimize cross-AZ traffic where possible.
+- **CloudFront**: Reduces per-GB cost for internet delivery and reduces origin load.
+- **Direct Connect**: Cheaper data transfer than internet at high volumes (>a few TB/month).

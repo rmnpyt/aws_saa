@@ -1,0 +1,96 @@
+---
+title: "Database Fundamentals"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "database-fundamentals"
+order: 6
+domain: 0
+taskStatements: []
+estimatedMinutes: 25
+difficulty: "beginner"
+tags: ["database", "sql", "nosql", "relational", "rds", "dynamodb"]
+services: ["Amazon RDS", "Amazon DynamoDB", "Amazon Aurora", "Amazon ElastiCache"]
+---
+
+## Relational vs. Non-Relational Databases
+
+<ComparisonTable
+  headers={["Aspect", "Relational (SQL)", "Non-Relational (NoSQL)"]}
+  rows={[
+    ["Structure", "Tables with rows and columns", "Flexible: key-value, document, graph, column-family"],
+    ["Schema", "Fixed schema defined upfront", "Flexible / schema-less"],
+    ["Query language", "SQL", "Varies (DynamoDB API, MongoDB query, etc.)"],
+    ["Scaling", "Typically vertical (bigger server)", "Typically horizontal (add nodes)"],
+    ["ACID", "Yes — transactions with consistency", "Often eventual consistency (varies by service)"],
+    ["AWS services", "RDS, Aurora", "DynamoDB, DocumentDB, ElastiCache"],
+  ]}
+/>
+
+## ACID Properties
+
+**ACID** is what makes relational databases reliable for financial transactions and other critical data:
+
+- **Atomicity** — A transaction either completes fully or not at all (no partial updates)
+- **Consistency** — Data always moves from one valid state to another
+- **Isolation** — Concurrent transactions don't interfere with each other
+- **Durability** — Once committed, data is permanent even if the system crashes
+
+## Amazon RDS
+
+**RDS (Relational Database Service)** manages these database engines for you:
+- MySQL, PostgreSQL, MariaDB (open source)
+- Oracle, SQL Server (commercial — extra licensing costs)
+- Amazon Aurora (AWS's custom engine)
+
+RDS handles: OS patching, backups, Multi-AZ failover, read replicas.
+
+**Multi-AZ**: Synchronous replication to a standby in another AZ. Automatic failover. Used for **high availability**.
+
+**Read Replicas**: Asynchronous replication. Used for **read scaling**, not HA. Can be in same Region, different Region, or promoted to standalone.
+
+## Amazon Aurora
+
+Aurora is a MySQL/PostgreSQL-compatible engine built by AWS that offers:
+- **5× the throughput** of standard MySQL on RDS
+- **6 copies of data** across 3 AZs (2 copies per AZ) — extremely durable
+- Shared storage cluster (storage auto-scales to 128 TB, independent of compute)
+- Up to **15 read replicas** with sub-10ms replica lag
+- Aurora Serverless v2: auto-scales compute capacity per-request
+
+## Amazon DynamoDB
+
+DynamoDB is AWS's managed **key-value and document database**:
+- **Single-digit millisecond** latency at any scale
+- No server management — fully serverless
+- Auto-scaling (or on-demand capacity)
+- **DAX** (DynamoDB Accelerator): in-memory cache, sub-millisecond reads
+
+**Key concepts:**
+- **Partition key** (required): determines which partition stores the item
+- **Sort key** (optional): allows querying within a partition
+- **GSI (Global Secondary Index)**: query on non-key attributes
+- **DynamoDB Streams**: change data capture — triggers Lambda on table changes
+
+<ExamTip>
+"When should you use DynamoDB vs. RDS?" — DynamoDB when you need extreme scale, flexible schema, or serverless. RDS when you need SQL queries, complex joins, or transactional consistency. Aurora when you want relational performance + AWS-native features.
+</ExamTip>
+
+## Caching with Amazon ElastiCache
+
+**ElastiCache** is a managed in-memory data store used to accelerate databases:
+
+| Engine | Best for |
+|---|---|
+| **Redis** | Complex data types, pub/sub, sorted sets, persistence, multi-AZ |
+| **Memcached** | Simple caching, horizontal scaling, pure cache (no persistence) |
+
+**Caching patterns:**
+- **Lazy loading / Cache-aside**: Check cache first; on miss, load from DB and write to cache
+- **Write-through**: Write to cache and DB simultaneously; cache is always fresh
+
+## Summary
+
+- **Relational (RDS, Aurora)**: SQL, structured data, ACID, joins — use for business applications
+- **Non-relational (DynamoDB)**: Flexible schema, extreme scale, millisecond latency — use for session stores, IoT, gaming
+- **Multi-AZ** = high availability; **Read Replicas** = read scaling
+- **ElastiCache** sits in front of your database to reduce load and latency

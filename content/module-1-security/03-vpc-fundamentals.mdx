@@ -1,0 +1,160 @@
+---
+title: "VPC Fundamentals"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "vpc-fundamentals"
+order: 3
+domain: 1
+taskStatements: ["1.2"]
+estimatedMinutes: 55
+difficulty: "intermediate"
+tags: ["vpc", "subnets", "igw", "nat", "routing", "networking"]
+services: ["Amazon VPC"]
+---
+
+## What is a VPC?
+
+A **VPC (Virtual Private Cloud)** is a logically isolated section of the AWS cloud where you launch resources in a virtual network that you define. It is the fundamental networking construct in AWS.
+
+**VPC basics:**
+- Spans all AZs in a Region (unlike subnets, which exist in one AZ)
+- You control the IP address range (CIDR block)
+- Default VPC exists in every Region (172.31.0.0/16)
+- You can have up to 5 VPCs per Region by default (adjustable)
+- VPCs are completely isolated from each other by default
+
+## VPC Components
+
+### CIDR Block
+
+When you create a VPC, you define its IP address range using CIDR notation. Example: `10.0.0.0/16` gives you 65,536 IP addresses.
+
+**Rules:**
+- CIDR block must be between /16 (65,536 IPs) and /28 (16 IPs)
+- Once set, the primary CIDR cannot be changed (you can add secondary CIDRs)
+- Plan ahead — choose a non-overlapping range if you'll use VPC Peering
+
+### Subnets
+
+**Subnets** divide the VPC's CIDR into smaller blocks. Each subnet:
+- Lives in exactly **one AZ**
+- Has its own CIDR block (subset of the VPC's CIDR)
+- Is either **public** or **private** based on routing
+
+```
+VPC: 10.0.0.0/16
+
+Public Subnet AZ-1a:  10.0.1.0/24   (256 IPs)
+Public Subnet AZ-1b:  10.0.2.0/24   (256 IPs)
+Private Subnet AZ-1a: 10.0.10.0/24  (256 IPs)
+Private Subnet AZ-1b: 10.0.11.0/24  (256 IPs)
+```
+
+### Internet Gateway (IGW)
+
+An **Internet Gateway** enables communication between your VPC and the internet. It is:
+- Attached to a VPC (one IGW per VPC)
+- Horizontally scaled, redundant, and highly available
+- Free (you pay for data transfer, not the IGW itself)
+
+A subnet is **public** if its route table has a route to an IGW.
+
+### Route Tables
+
+A **route table** contains rules (routes) that determine where network traffic is directed.
+
+**Default (local) route** — every route table has this automatically:
+```
+Destination: 10.0.0.0/16  |  Target: local
+```
+This allows communication between all resources within the VPC.
+
+**Public subnet route table** — add route to IGW:
+```
+Destination: 10.0.0.0/16  |  Target: local
+Destination: 0.0.0.0/0    |  Target: igw-xxxxxxxx
+```
+
+**Private subnet route table** — route outbound traffic through NAT:
+```
+Destination: 10.0.0.0/16  |  Target: local
+Destination: 0.0.0.0/0    |  Target: nat-xxxxxxxx
+```
+
+### NAT Gateway vs. NAT Instance
+
+Private subnets need outbound internet access for OS updates, API calls, etc. — but should not be directly reachable from the internet. NAT provides one-way internet access.
+
+<ComparisonTable
+  headers={["Feature", "NAT Gateway", "NAT Instance"]}
+  rows={[
+    ["Type", "Managed AWS service", "EC2 instance with NAT software"],
+    ["Availability", "Highly available within AZ", "Single instance — can fail"],
+    ["Bandwidth", "Up to 100 Gbps (auto-scales)", "Limited by instance type"],
+    ["Cost", "Hourly + data processing charges", "EC2 cost + EIP cost (usually cheaper at low volume)"],
+    ["Maintenance", "AWS manages everything", "You manage OS, patches, failover"],
+    ["Security groups", "Not supported", "Supported"],
+    ["Port forwarding", "Not supported", "Supported"],
+  ]}
+/>
+
+<ExamTip>
+**Always choose NAT Gateway** unless the question specifically asks about cost optimization for very low-traffic workloads, or mentions port forwarding (which only NAT instances support). NAT Gateway is the exam's preferred answer.
+</ExamTip>
+
+**Important: One NAT Gateway per AZ.** For multi-AZ high availability, deploy one NAT Gateway per AZ and route each AZ's private subnets to that AZ's NAT Gateway.
+
+## The Default VPC
+
+Every AWS account has a default VPC in each Region:
+- CIDR: `172.31.0.0/16`
+- Subnets in each AZ — all are public (have IGW routes)
+- EC2 instances in default VPC get public IPs automatically
+- **Do not use the default VPC for production** — it's for testing only
+
+## Typical 3-Tier VPC Architecture
+
+```
+Internet
+    │
+[Internet Gateway]
+    │
+[Public Subnets AZ-a, AZ-b]
+    │  - Load balancers
+    │  - NAT Gateways
+    │  - Bastion hosts
+    │
+[Private Subnets AZ-a, AZ-b]
+    │  - Application servers (EC2, ECS)
+    │  - Lambda functions in VPC
+    │
+[Database Subnets AZ-a, AZ-b]
+    - RDS instances
+    - ElastiCache
+    (No outbound internet needed)
+```
+
+## VPC Flow Logs
+
+**VPC Flow Logs** capture information about IP traffic going to/from network interfaces in your VPC. They log:
+- Source and destination IP/port
+- Protocol
+- Packet/byte counts
+- Action (ACCEPT or REJECT)
+
+Flow logs can be sent to **CloudWatch Logs** or **S3**. They are essential for security analysis, network troubleshooting, and compliance auditing. Flow logs do NOT capture real-time traffic content — only metadata.
+
+## Elastic IP Addresses (EIPs)
+
+An **Elastic IP** is a static, public IPv4 address you can allocate to your account and attach to any EC2 instance or NAT Gateway. Unlike regular public IPs (which change on stop/start), EIPs persist until you release them.
+
+**Cost:** EIPs are free while attached to a running instance. You're charged per hour if you allocate one but don't use it (to discourage hoarding).
+
+## Summary
+
+- **VPC** = your isolated virtual network in a Region, you control the CIDR
+- **Subnets** = AZ-specific subdivisions. Public = has route to IGW. Private = no direct internet
+- **Internet Gateway** = enables internet access for public subnets
+- **NAT Gateway** = enables outbound internet for private subnets (one per AZ for HA)
+- **Route tables** = control where traffic flows; public subnets need `0.0.0.0/0 → IGW`
+- 3-tier pattern: Public (LB/NAT) → Private (App) → Database (no internet)

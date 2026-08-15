@@ -1,0 +1,106 @@
+---
+title: "Data Migration: Snow Family & DataSync"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "migration-snow"
+order: 11
+domain: 3
+taskStatements: ["3.1"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["snowball", "snow-family", "datasync", "migration", "edge-computing"]
+services: ["AWS Snow Family", "AWS DataSync", "AWS Storage Gateway"]
+---
+
+## Data Migration Challenges
+
+Moving petabytes of data over the internet is slow and expensive. At 1 Gbps internet, 1 PB of data takes:
+```
+1 PB / (1 Gbps × 3600 sec/hr × 24 hr × 0.125 GB/Gb) = ~100 days
+```
+
+For large datasets, physically shipping storage devices is faster.
+
+## AWS Snow Family
+
+The **Snow family** provides physical devices for data transfer and edge computing:
+
+| Device | Storage | Use case |
+|---|---|---|
+| **Snowcone** | 8 TB HDD / 14 TB SSD | Small, lightweight (4.5 lbs). Edge locations, portable. |
+| **Snowball Edge Storage Optimized** | 80 TB HDD | Petabyte-scale data migration, edge storage |
+| **Snowball Edge Compute Optimized** | 42 TB HDD | Edge computing with EC2 + GPU instances |
+| **Snowmobile** | Up to 100 PB per truck | Exabyte-scale migration. A literal 45-foot shipping container. |
+
+**The Snow process:**
+1. Order a device from AWS Console
+2. AWS ships it to you (within days)
+3. Connect to your network, transfer data
+4. Ship it back to AWS
+5. AWS transfers data to S3 (or other services)
+6. AWS wipes the device (cryptographically erased to NIST standards)
+
+**Edge computing with Snow**: Snowball Edge and Snowcone can run EC2 instances and Lambda functions at the edge — process data where connectivity is limited (ships, oil rigs, mining sites, military).
+
+<ExamTip>
+Use Snow Family when data transfer over internet would take more than a week. Rule of thumb: > 10 TB in poor connectivity or > 100 TB in good connectivity → consider Snowball.
+</ExamTip>
+
+## AWS DataSync
+
+**DataSync** is an online data transfer service for moving large amounts of data to/from AWS:
+
+**Sources/Destinations:**
+- On-premises: NFS, SMB shares, HDFS, Amazon S3-compatible storage
+- AWS: S3, EFS, FSx for Windows, FSx for Lustre
+
+**How it works:**
+- Deploy DataSync agent (VM) on-premises
+- Agent compresses and encrypts data during transfer
+- Automatically handles throttling, retries, ordering
+- Transfer speeds: Up to 10 Gbps per task
+
+**DataSync vs. Snow Family:**
+- **DataSync**: Online (internet or Direct Connect). Good for ongoing sync or datasets < a few hundred TB.
+- **Snow Family**: Offline (physical device). Better for large one-time migrations or poor connectivity.
+
+**DataSync vs. S3 Transfer Acceleration:**
+- **DataSync**: Any source (NFS, SMB, HDFS). Optimized protocol. Better for bulk migrations.
+- **S3 Transfer Acceleration**: Only for S3. Uses CloudFront edge network. Better for end-user upload acceleration.
+
+## AWS Storage Gateway
+
+**Storage Gateway** bridges on-premises environments with AWS storage:
+
+| Gateway Type | Protocol | Backend storage | Use case |
+|---|---|---|---|
+| **S3 File Gateway** | NFS, SMB | S3 | On-premises servers write files → stored as S3 objects |
+| **FSx File Gateway** | SMB | FSx for Windows | On-premises access to FSx with local cache |
+| **Volume Gateway (Stored)** | iSCSI | S3 + EBS snapshots | On-premises volumes backed up to AWS |
+| **Volume Gateway (Cached)** | iSCSI | S3 (primary), local cache | S3 as primary, local cache for recent data |
+| **Tape Gateway** | VTL (virtual tape) | S3 Glacier | Replace physical tape library with virtual tapes in S3 |
+
+**S3 File Gateway** is the most common exam scenario:
+- On-premises application writes files via NFS
+- Files are stored as S3 objects
+- Bridge between on-premises file protocols and object storage
+
+## AWS Transfer Family
+
+**Transfer Family** provides managed SFTP, FTPS, and FTP endpoints for transferring files to/from S3 or EFS:
+
+- Users connect via SFTP/FTP to a managed endpoint
+- Files land in S3 or EFS
+- Replaces self-managed FTP servers
+- Authentication via service-managed, Active Directory, or custom Lambda
+
+**Use case**: Partners and customers who need to send/receive files via SFTP, without changing their tooling.
+
+## Summary
+
+- **Snowcone**: Small, portable (8-14 TB). Edge computing.
+- **Snowball Edge**: 80 TB, edge computing with EC2. Bulk migrations.
+- **Snowmobile**: 100 PB per truck. Exabyte migrations.
+- **DataSync**: Online transfer (NFS/SMB → S3/EFS). Compressed, encrypted, throttle-controlled.
+- **Storage Gateway**: On-premises to AWS bridge. S3 File Gateway for NFS/SMB → S3.
+- **Transfer Family**: Managed SFTP/FTP endpoint → S3 or EFS.

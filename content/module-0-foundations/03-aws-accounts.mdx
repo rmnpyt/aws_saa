@@ -1,0 +1,98 @@
+---
+title: "How AWS Accounts Work"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "aws-accounts"
+order: 3
+domain: 0
+taskStatements: []
+estimatedMinutes: 25
+difficulty: "beginner"
+tags: ["accounts", "iam", "root-user", "console", "cli"]
+services: ["IAM", "AWS Organizations"]
+---
+
+## The AWS Account
+
+An **AWS account** is the fundamental isolation boundary in AWS. Every account has:
+- A unique **12-digit account ID** (e.g., `123456789012`)
+- One **root user** (the email address used to create the account)
+- Its own billing, resources, and permissions
+
+Resources in one account are completely isolated from another account by default. This isolation makes accounts a powerful security boundary.
+
+## The Root User
+
+The **root user** is created when you open an AWS account and has **unrestricted access to everything** in the account. You cannot reduce root user permissions with IAM policies.
+
+**Root user best practices:**
+1. Use root only to create the first IAM admin user, then stop using it
+2. **Enable MFA** on the root user immediately
+3. Never share root credentials
+4. Never create access keys for root
+
+**Tasks that ONLY root can perform (exam favorite):**
+- Close the AWS account
+- Change the account's support plan
+- Enable IAM access to the Billing console
+- Restore IAM user permissions (if locked out)
+- Register as a seller in the AWS Marketplace
+
+<ExamTip>
+If a question says "which task requires root credentials?", the answers are always about account-level operations: closing the account, changing the support plan, or signing up for GovCloud.
+</ExamTip>
+
+## IAM Users, Groups, Roles, and Policies (Preview)
+
+**IAM (Identity and Access Management)** is how you control who can do what in your AWS account. A full deep-dive is in Module 1, but here's the mental model:
+
+| Entity | What it is |
+|---|---|
+| **IAM User** | A permanent identity for a person or application. Has long-term credentials (username/password, access keys). |
+| **IAM Group** | A collection of IAM users. Attach policies to groups rather than individual users. |
+| **IAM Role** | A temporary identity — assumed by users, services, or applications. No long-term credentials. |
+| **IAM Policy** | A JSON document that defines what actions are allowed or denied on which resources. |
+
+## Accessing AWS
+
+There are three ways to interact with AWS:
+
+| Method | Best for | Notes |
+|---|---|---|
+| **AWS Management Console** | Learning, one-off tasks, visual exploration | Web browser — uses HTTPS |
+| **AWS CLI** | Automation, scripting, power users | Must configure with access keys or IAM role |
+| **AWS SDKs** | Application code | Python (boto3), JavaScript, Java, Go, etc. |
+
+All three methods call the same underlying **AWS APIs** — the console is just a UI on top.
+
+## AWS Regions in the Console
+
+When using the console, always check your **Region selector** in the top-right corner. Services are Region-specific — an EC2 instance in us-east-1 is invisible when you're viewing us-west-2.
+
+Some services are **global** (no Region selector needed): IAM, Route 53, CloudFront, AWS Organizations.
+
+## Multi-Account Strategy (Preview)
+
+Most organizations use multiple AWS accounts for isolation:
+
+```
+Management Account (root of org)
+├── Security OU
+│   ├── Security Tooling Account
+│   └── Log Archive Account
+├── Production OU
+│   ├── Prod Account 1
+│   └── Prod Account 2
+└── Development OU
+    └── Dev Account
+```
+
+**AWS Organizations** provides centralized management of multiple accounts. **Service Control Policies (SCPs)** enforce permissions guardrails across all accounts. Full coverage in Domain 1.
+
+## Summary
+
+- Every AWS account has a unique ID, one root user, and isolated resources
+- Root user: use only for account-level tasks, enable MFA, never create access keys
+- IAM controls who can do what — users, groups, roles, policies
+- Console, CLI, and SDK all call the same AWS APIs
+- Multi-account structure using AWS Organizations is a security and governance best practice

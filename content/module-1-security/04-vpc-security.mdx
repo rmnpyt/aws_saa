@@ -1,0 +1,116 @@
+---
+title: "VPC Traffic Controls: Security Groups & NACLs"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "vpc-security"
+order: 4
+domain: 1
+taskStatements: ["1.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["security-groups", "nacl", "vpc", "firewall", "stateful", "stateless"]
+services: ["Amazon VPC"]
+---
+
+## Two Layers of VPC Traffic Filtering
+
+AWS provides two traffic filtering mechanisms that work at different levels:
+
+<ComparisonTable
+  headers={["Feature", "Security Groups", "Network ACLs (NACLs)"]}
+  rows={[
+    ["Level", "Instance level (ENI)", "Subnet level"],
+    ["State", "Stateful — return traffic auto-allowed", "Stateless — must explicitly allow return traffic"],
+    ["Rules", "Allow rules only (implicit deny all)", "Allow AND Deny rules"],
+    ["Rule evaluation", "All rules evaluated together", "Rules evaluated in order (lowest number first)"],
+    ["Default behavior", "Deny all inbound, allow all outbound", "Allow all inbound and outbound (default NACL)"],
+    ["Scope", "Applies to instances", "Applies to all instances in subnet"],
+  ]}
+/>
+
+## Security Groups
+
+A **security group** acts as a virtual firewall attached to EC2 instances (technically to the Elastic Network Interface / ENI).
+
+**Key properties:**
+- **Stateful**: If you allow inbound traffic on port 80, the response is automatically allowed outbound, without needing an outbound rule
+- **Allow rules only**: You can only write Allow rules — anything not allowed is implicitly denied
+- **Multiple instances**: One security group can be applied to multiple instances
+- **Multiple SGs**: One instance can have multiple security groups (rules are combined/additive)
+- **Reference other SGs**: Rules can reference other security groups instead of IP addresses — this is a powerful pattern
+
+**Inbound rule example:**
+```
+Type: HTTP
+Protocol: TCP
+Port: 80
+Source: 0.0.0.0/0  (anywhere)
+```
+
+**Security group chaining (important pattern):**
+```
+Web Server SG: Allow port 80 from internet
+App Server SG: Allow port 8080 from Web Server SG (not an IP!)
+DB SG: Allow port 3306 from App Server SG
+```
+
+This pattern ensures your database can only be accessed by app servers, and app servers can only be accessed by web servers — even if IP addresses change.
+
+<ExamTip>
+Security group rules can reference other security groups by ID, not just CIDR blocks. This is the recommended approach for multi-tier architectures and a common exam scenario.
+</ExamTip>
+
+## Network ACLs (NACLs)
+
+**Network ACLs** are an optional, stateless firewall at the subnet level. They apply to all instances in the subnet.
+
+**Key properties:**
+- **Stateless**: You must explicitly allow BOTH inbound AND outbound traffic (and ephemeral ports!)
+- **Allow and Deny rules**: Unlike security groups, NACLs can explicitly block specific IPs
+- **Rule evaluation order**: Rules are evaluated numerically in order (lowest first); first match wins
+- **Default NACL**: Allows all inbound and outbound traffic (don't confuse with "new" NACLs which deny all)
+
+**NACL rule example (web server subnet):**
+```
+Rule 100  |  Allow  |  Inbound  |  TCP  |  80   |  0.0.0.0/0  (web traffic in)
+Rule 110  |  Allow  |  Inbound  |  TCP  |  443  |  0.0.0.0/0  (HTTPS in)
+Rule 120  |  Allow  |  Inbound  |  TCP  |  1024-65535 | 0.0.0.0/0 (ephemeral ports for responses)
+Rule *    |  Deny   |  Inbound  |  All  |  All  |  0.0.0.0/0  (implicit deny)
+
+Rule 100  |  Allow  |  Outbound |  TCP  |  1024-65535 | 0.0.0.0/0 (response traffic)
+Rule *    |  Deny   |  Outbound |  All  |  All  |  0.0.0.0/0
+```
+
+**Ephemeral ports**: The client picks a random port (1024-65535) for its side of a TCP connection. NACLs must allow these ephemeral ports for return traffic.
+
+## When to Use Each
+
+| Use Case | Use |
+|---|---|
+| Block a specific malicious IP address | **NACL** (NACLs have explicit Deny rules) |
+| Control traffic between tiers of an app | **Security Group** (reference other SGs) |
+| Fast, coarse-grained subnet-level filter | **NACL** |
+| Fine-grained, per-instance control | **Security Group** |
+| Default — most architectures | **Security Group** |
+
+<ExamTip>
+To **block a specific IP**, you must use a NACL — security groups cannot explicitly deny. This is a classic exam question: "A malicious IP is attacking the web tier. What should you do?" → Add a DENY rule to the subnet NACL.
+</ExamTip>
+
+## VPC Flow Logs for Troubleshooting
+
+When traffic is being blocked and you're not sure why, enable **VPC Flow Logs** and look for `REJECT` entries. The log includes:
+- Source IP, destination IP, port, protocol
+- Whether the traffic was ACCEPTED or REJECTED
+- Which interface it was on
+
+Flow logs go to CloudWatch Logs or S3 and can be queried with CloudWatch Insights or Athena.
+
+## Summary
+
+- **Security Groups** — stateful, allow-only, instance level. Best for most scenarios.
+- **NACLs** — stateless, allow+deny, subnet level. Best for blocking specific IPs or ranges.
+- Security groups can reference other security groups by ID — use for multi-tier architectures
+- NACLs evaluate rules by number (lowest first, first match wins)
+- To block a specific IP: NACL explicit Deny rule
+- Remember ephemeral ports (1024–65535) for NACL return traffic rules

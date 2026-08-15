@@ -1,0 +1,11 @@
+{
+  "id": "module-4",
+  "slug": "module-4-cost",
+  "title": "Domain 4: Design Cost-Optimized Architectures",
+  "shortTitle": "Cost",
+  "domain": 4,
+  "weight": 20,
+  "description": "EC2 purchasing options, S3 storage classes, network cost optimization, database cost strategies, and AWS cost management tools.",
+  "color": "#D97706",
+  "estimatedHours": 9
+}

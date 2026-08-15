@@ -1,0 +1,68 @@
+---
+title: "AWS Shared Responsibility Model"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "shared-responsibility"
+order: 8
+domain: 0
+taskStatements: []
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["shared-responsibility", "security", "compliance", "fundamentals"]
+services: ["IAM", "AWS Config"]
+---
+
+## The Shared Responsibility Model
+
+Security in the cloud is a **shared responsibility** between AWS and the customer. The boundary differs depending on the service used.
+
+**AWS is responsible for security "OF" the cloud:**
+- Physical security of data centers
+- Hardware (servers, network equipment)
+- Hypervisor and virtualization layer
+- Global infrastructure (Regions, AZs, Edge Locations)
+- Software for managed services (RDS engine patches, S3 infrastructure, etc.)
+
+**You are responsible for security "IN" the cloud:**
+- Operating system patches (for EC2 — you choose the AMI and must patch it)
+- Network and firewall configuration (security groups, NACLs, VPC routing)
+- Application code and data
+- Identity and access management (IAM users, roles, permissions)
+- Client-side encryption
+- Data classification and compliance requirements
+
+## How Responsibility Shifts by Service Type
+
+<ComparisonTable
+  headers={["Service Type", "Example", "You manage", "AWS manages"]}
+  rows={[
+    ["IaaS", "EC2", "OS, runtime, app, data, networking config", "Hardware, hypervisor, physical security"],
+    ["PaaS", "Elastic Beanstalk, Lambda", "Application code, data, IAM", "OS, runtime, infrastructure"],
+    ["SaaS / Managed", "RDS, S3, DynamoDB", "Data, IAM, encryption config", "OS patches, hardware, service software"],
+  ]}
+/>
+
+<ExamTip>
+**RDS vs. EC2 database**: On RDS, AWS patches the database engine. On an EC2-hosted database, YOU must patch the database engine. This is a classic shared responsibility question.
+</ExamTip>
+
+## Inherited vs. Shared Controls
+
+Some security controls are:
+- **Fully inherited** from AWS — Physical and environmental controls (you never touch data center security)
+- **Shared** — Patch management (AWS patches managed services; you patch EC2 OS and apps), configuration management
+- **Customer-only** — Training your employees, data classification, client-side encryption
+
+## Why This Matters
+
+Understanding the shared responsibility model tells you:
+1. What security tasks are your job vs. AWS's job
+2. Which AWS certifications and compliance reports you can inherit (use AWS's SOC2 report for your own compliance assessments via AWS Artifact)
+3. Where to focus your security architecture efforts
+
+## Summary
+
+- AWS secures the infrastructure; you secure what runs on it
+- More managed services → more responsibility shifts to AWS
+- On EC2: you patch the OS and application. On RDS: AWS patches the DB engine
+- AWS Artifact provides access to AWS compliance reports (SOC, PCI, ISO)

@@ -1,0 +1,127 @@
+---
+title: "Serverless & Managed Service Cost Optimization"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "serverless-cost"
+order: 4
+domain: 4
+taskStatements: ["4.2"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["lambda", "fargate", "dynamodb", "serverless", "cost-optimization"]
+services: ["AWS Lambda", "AWS Fargate", "Amazon DynamoDB"]
+---
+
+## The Serverless Cost Advantage
+
+Serverless compute eliminates the "pay for idle" problem:
+
+| Model | Pay for idle? |
+|---|---|
+| EC2 (On-Demand) | Yes — paying when instance is running but not processing |
+| ECS on EC2 | Yes — paying for cluster capacity even at low utilization |
+| Lambda | No — pay per invocation and duration only |
+| Fargate | No — pay per CPU/memory per second, only when tasks run |
+| DynamoDB On-Demand | No — pay per request only |
+
+## Lambda Cost Optimization
+
+**Lambda pricing:**
+- **Requests**: $0.20 per 1 million requests
+- **Duration**: $0.0000166667 per GB-second (memory × duration)
+- **Free tier**: 1M requests/month, 400K GB-seconds/month
+
+**Optimization strategies:**
+
+### 1. Right-size Memory
+More memory = more cost per ms but faster execution. Sometimes increasing memory reduces total cost if it reduces duration significantly:
+
+```
+128 MB, 2000 ms = 0.128 GB × 2 sec = 0.256 GB-seconds
+512 MB, 400 ms  = 0.512 GB × 0.4 sec = 0.205 GB-seconds ← cheaper!
+```
+
+Use **AWS Lambda Power Tuning** (open-source tool) to find the optimal memory setting.
+
+### 2. Optimize Code
+Reduce execution time = reduce cost:
+- Initialize SDK clients and DB connections outside the handler (reused across invocations)
+- Use efficient data structures and algorithms
+- Reduce payload size (compress, paginate)
+
+### 3. Use Graviton2 (ARM64)
+Lambdas running on ARM64 (Graviton2):
+- Up to 34% price/performance improvement
+- Just change the architecture setting — code changes usually minimal
+
+### 4. Reduce Invocations
+- Batch events where possible (SQS batch size)
+- Use caching to avoid redundant Lambda calls
+- Use API Gateway caching to serve repeated requests without invoking Lambda
+
+## Fargate Cost Optimization
+
+**Fargate pricing**: Per vCPU-second and GB-second while tasks run.
+
+**Strategies:**
+- **Fargate Spot**: Same as EC2 Spot — up to 70% discount. For fault-tolerant, interruptible tasks.
+- **Right-size tasks**: Set CPU and memory to what your container actually needs (not the default max)
+- **Optimize task density**: Fit more containers per task before adding tasks
+- **Graviton2 (ARM)**: Fargate ARM64 tasks are 20% cheaper per vCPU-second
+
+## DynamoDB Cost Optimization
+
+**DynamoDB pricing components:**
+- Write Request Units (WRUs) and Read Request Units (RRUs): pay per request (on-demand)
+- Write Capacity Units (WCUs) and Read Capacity Units (RCUs): provisioned capacity per hour
+- Storage: Per GB per month
+- Optional: DynamoDB Streams, Global Tables replication, backups, DAX
+
+**Optimization strategies:**
+
+### Provisioned vs. On-Demand
+- **On-demand**: 6x more expensive per request but scales instantly. Good for unpredictable traffic.
+- **Provisioned + Auto Scaling**: Cheaper for predictable traffic. Set min/max, target 70% utilization.
+- **Reserved Capacity**: Commit to 1 or 3 years of minimum provisioned capacity for up to 77% discount.
+
+### Table-Level Optimization
+- **S3 for large attributes**: DynamoDB charges per read unit (4 KB for reads). Large attributes cost more. Store large BLOBs in S3, keep only the S3 key in DynamoDB.
+- **Sparse indexes**: Only include items with the indexed attribute — GSIs are cheaper when sparse.
+- **TTL (Time to Live)**: Automatically expire and delete old items. No cost for TTL deletes.
+
+## RDS Cost Optimization
+
+**RDS optimization:**
+- **Reserved Instances**: Up to 69% savings. Use for production databases running 24/7.
+- **Multi-AZ only for production**: Dev/test databases don't need Multi-AZ.
+- **Aurora Serverless v2**: For dev/test environments — scales to very low capacity during idle.
+- **Automate snapshots deletion**: Automated backups have a retention period; don't set it higher than needed.
+- **RDS Proxy**: Reduces connection overhead (Lambda use case).
+
+## Trusted Advisor and Compute Optimizer
+
+### AWS Trusted Advisor
+Provides recommendations across five categories (Security, Cost, Performance, Fault Tolerance, Service Limits):
+
+**Cost checks:**
+- Idle RDS instances (running but <1% CPU and <1 connection/day)
+- Unassociated Elastic IP addresses (charged when not attached)
+- Underutilized EC2 instances (<10% CPU over 4+ days)
+- Idle load balancers
+- Unused Reserved Instances
+
+Basic checks: Free for all. Full checks: Require Business or Enterprise support plan.
+
+### AWS Compute Optimizer
+Right-sizes EC2, Lambda, EBS, and ECS using ML:
+- Analyzes actual CPU, memory, network utilization
+- Recommends smaller instance types where utilization is low
+- Can identify "over-provisioned" resources that waste money
+
+## Summary
+
+- **Lambda**: Pay per request and duration. Optimize memory setting. Use ARM64 (Graviton2) for 34% savings.
+- **Fargate Spot**: 70% discount for fault-tolerant tasks. Use for batch and background jobs.
+- **DynamoDB**: On-demand for spiky, provisioned+autoscaling for steady. TTL for cleanup. Reserved for predictable base.
+- **Trusted Advisor**: Checks for idle/underutilized resources and recommends cost savings.
+- **Compute Optimizer**: ML-based right-sizing for EC2, Lambda, ECS, EBS.

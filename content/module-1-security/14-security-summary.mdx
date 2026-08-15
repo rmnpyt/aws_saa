@@ -1,0 +1,147 @@
+---
+title: "Domain 1 Security: Key Patterns & Review"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "security-summary"
+order: 14
+domain: 1
+taskStatements: ["1.1", "1.2", "1.3"]
+estimatedMinutes: 25
+difficulty: "beginner"
+tags: ["review", "patterns", "cheat-sheet", "security"]
+services: []
+---
+
+## Domain 1 at a Glance
+
+Domain 1 (Security) is worth **30% of the SAA-C03 exam** — the highest-weighted domain. You must be able to identify the correct security service for a given scenario quickly.
+
+## Quick-Decision Trees
+
+### Identity & Access
+
+```
+Who needs access?
+├── Human in one account → IAM User + Groups + Policies
+├── Human across many accounts → IAM Identity Center (SSO)
+├── Application on EC2/Lambda → IAM Role (instance/execution role)
+├── Federated enterprise users (AD/Okta) → SAML + AssumeRoleWithSAML or Identity Center
+├── Mobile/web app users → Cognito User Pool + Identity Pool
+└── Cross-account access → IAM Role with trust policy in destination account
+```
+
+### Network Security
+
+```
+What are you protecting?
+├── Specific EC2 instance traffic → Security Group (stateful, allow-only)
+├── Entire subnet → NACL (stateless, allow+deny)
+├── Block a specific IP → NACL Deny rule
+├── Web app against SQLi/XSS → AWS WAF on ALB/CloudFront
+├── DDoS protection → Shield Standard (free) or Shield Advanced (paid)
+└── Application-layer DDoS → WAF + Shield Advanced together
+```
+
+### Connectivity
+
+```
+On-premises to AWS:
+├── Quick setup, low cost → Site-to-Site VPN (IPSec encrypted)
+├── High bandwidth, consistent latency → Direct Connect (not encrypted!)
+├── Both secure AND fast → Direct Connect + VPN over it
+└── Multiple sites to each other → VPN CloudHub
+
+VPC to VPC:
+├── Two VPCs → VPC Peering (non-transitive)
+└── Many VPCs → Transit Gateway (hub-and-spoke)
+
+Private access to AWS services:
+├── S3 or DynamoDB → Gateway Endpoint (FREE)
+└── Other services → Interface Endpoint (PrivateLink)
+```
+
+### Encryption
+
+```
+Data at rest:
+├── Default, no key control needed → SSE-S3 (AES-256)
+├── Audit who accessed objects → SSE-KMS (CloudTrail logs each access)
+├── Bring your own key → SSE-C or Client-side
+└── Dedicated HSM, FIPS 140-2 Level 3 → CloudHSM
+
+Data in transit:
+├── Web app on ALB/CloudFront → ACM (free cert, auto-renews)
+└── API calls to AWS → TLS enforced by all AWS APIs
+```
+
+### Secrets
+
+```
+Need automatic rotation? → Secrets Manager ($0.40/secret/month)
+Just storing config values? → SSM Parameter Store (free standard tier)
+Sensitive but no rotation? → SSM Parameter Store with SecureString
+```
+
+### Threat Detection (Who detects what?)
+
+| "Detect ___" | Service |
+|---|---|
+| Active threats in real time | GuardDuty |
+| Who made an API call | CloudTrail |
+| Resource configuration compliance | AWS Config |
+| Unpatched CVEs on EC2 | Inspector |
+| Sensitive data in S3 | Macie |
+| Central view of all findings | Security Hub |
+| Root cause of an incident | Detective |
+
+## High-Frequency Exam Patterns
+
+### Pattern 1: "Most secure" S3 access
+- Block Public Access at account level
+- Bucket policy with `aws:SecureTransport: true` (HTTPS only)
+- SSE-KMS encryption
+- S3 Versioning + Object Lock
+
+### Pattern 2: Private subnet to the internet
+- NAT Gateway in public subnet
+- Route table: `0.0.0.0/0 → NAT Gateway`
+- One NAT Gateway per AZ for HA
+
+### Pattern 3: Secure database credentials in an app
+- Store in Secrets Manager (auto-rotation enabled)
+- EC2/Lambda retrieves at runtime via IAM role
+- No hardcoded credentials anywhere
+
+### Pattern 4: Web application protection
+- CloudFront in front of ALB
+- WAF Web ACL on CloudFront (SQLi, XSS rules)
+- Shield Advanced for DDoS
+- ALB with HTTPS listener + ACM certificate
+- HTTP → HTTPS redirect rule on ALB
+
+### Pattern 5: Enterprise employee access to AWS
+- AWS IAM Identity Center
+- Connect to corporate AD (via AWS Managed Microsoft AD or AD Connector)
+- Define permission sets per role (Admin, Developer, ReadOnly)
+- Users access all accounts from single portal
+
+## Common Traps to Avoid
+
+1. **SCPs don't apply to management account** — Only to member accounts in the org
+2. **Security Groups are stateful, NACLs are stateless** — Don't need return traffic rules in SGs
+3. **VPC Peering is not transitive** — A→B→C doesn't work; need A→C directly
+4. **Direct Connect is not encrypted** — Must add IPSec VPN for encryption
+5. **ACM certs can't be exported** — Only work with ALB, CloudFront, API GW, etc.
+6. **IAM policies deny by default** — Explicit allow required; explicit deny wins over allow
+7. **Key policy must allow root** — Without it, even account admins can't use the KMS key
+
+## Summary Score
+
+You should be able to:
+- [ ] Explain the difference between IAM users, groups, roles, and policies
+- [ ] Describe when to use Security Groups vs. NACLs
+- [ ] Choose between VPC Peering and Transit Gateway
+- [ ] Select the right encryption option for a given S3 use case
+- [ ] Know which service detects each type of threat
+- [ ] Describe how federated access works (SAML, Cognito)
+- [ ] Explain when to use Secrets Manager vs. Parameter Store

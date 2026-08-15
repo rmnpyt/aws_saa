@@ -1,0 +1,112 @@
+---
+title: "Backup & Disaster Recovery"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "backup-recovery"
+order: 11
+domain: 2
+taskStatements: ["2.1"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["aws-backup", "disaster-recovery", "snapshots", "s3-replication", "cross-region"]
+services: ["AWS Backup", "Amazon S3", "Amazon EBS"]
+---
+
+## AWS Backup
+
+**AWS Backup** is a fully managed service that centralizes and automates backup across supported AWS services.
+
+**Supported services:**
+- EC2 (EBS snapshots)
+- RDS, Aurora, DynamoDB
+- EFS, FSx
+- S3
+- AWS Storage Gateway
+- VMware workloads
+
+**Why use AWS Backup instead of individual service snapshots?**
+- Single place to define backup policies for all services
+- Cross-account and cross-region backup support
+- **Vault Lock**: Enforce WORM (immutable backups) — even admins can't delete
+- Compliance reporting
+
+### Backup Plans
+
+A **backup plan** defines:
+- **Backup rule**: When and how often to back up (schedule)
+- **Lifecycle**: How long to keep backups before deleting or moving to cold storage
+- **Copy action**: Copy backups to another region or account
+- **Vault**: Where to store the backup
+
+**Example plan:**
+- Daily backup, retain for 30 days, copy to us-west-2 for DR
+
+## EBS Snapshots
+
+**EBS snapshots** capture the state of an EBS volume at a point in time:
+- Stored in S3 (managed by AWS — you don't see them in your bucket)
+- Incremental: Only changed blocks since last snapshot are stored (space-efficient)
+- Can be copied to another region (for DR)
+- Can create a new volume from a snapshot (restore)
+
+**Data Lifecycle Manager (DLM)**: Automates EBS snapshot creation and retention. Schedule snapshots, set retention, copy to another region.
+
+## S3 Replication
+
+**S3 Cross-Region Replication (CRR)**: Asynchronously replicate objects to a bucket in another region:
+- Use for DR, compliance with data residency requirements, reducing latency for users in another region
+- **Requires versioning** on both source and destination buckets
+- Replicate all objects or filtered subset (prefix, tags)
+- IAM role to allow S3 to replicate on your behalf
+
+**S3 Same-Region Replication (SRR)**: Replicates within the same region:
+- Aggregate logs from multiple accounts into one central account
+- Live replication between production and test accounts
+
+**Replication time control (RTC)**: Guarantees 99.99% of objects are replicated within 15 minutes. Useful for compliance with replication SLAs.
+
+## Point-in-Time Recovery
+
+Many AWS services offer **PITR (Point-in-Time Recovery)** — restore to any point in time within a retention window:
+
+| Service | PITR available? | Retention |
+|---|---|---|
+| RDS/Aurora | Yes | 1-35 days |
+| DynamoDB | Yes (enable separately) | Up to 35 days |
+| S3 | No native PITR, but versioning enables recovery of deleted/modified objects |
+
+## Database Snapshot Strategies
+
+**RDS automated backups**: Enabled by default, 1-35 days retention. Includes transaction logs → PITR to any second.
+
+**RDS manual snapshots**: Retained until you delete them (not subject to retention period). Good for before major changes or for long-term archival.
+
+**Aurora continuous backup**: Aurora automatically backs up to S3 continuously, enabling PITR without impacting performance.
+
+## Disaster Recovery Implementation
+
+### Cross-Region Failover Checklist
+
+For a full DR plan:
+1. **Data**: RDS Read Replica in DR region OR Aurora Global Database OR AWS Backup cross-region copy
+2. **Compute**: AMIs copied to DR region or Launch Template ready
+3. **DNS**: Route 53 failover routing with health checks on primary region
+4. **Network**: VPC and subnets pre-created in DR region
+5. **Secrets**: Secrets Manager with replication to DR region
+6. **Infrastructure**: CloudFormation or Terraform template to deploy in DR region quickly
+
+### Elastic Disaster Recovery (CloudEndure)
+
+**AWS Elastic Disaster Recovery** continuously replicates your servers to AWS, enabling fast, reliable recovery of on-premises and cloud-based workloads:
+- RPO: Seconds (continuous replication)
+- RTO: Minutes (pre-warmed machines)
+
+Replaces manual backup-and-restore with automated orchestration.
+
+## Summary
+
+- **AWS Backup**: Centralized backup policy management across all services. Vault Lock for immutable backups.
+- **EBS Snapshots**: Incremental snapshots stored in S3. Copy to another region for DR.
+- **S3 CRR**: Async cross-region replication. Requires versioning. For DR and latency.
+- **PITR**: Available for RDS (35 days), Aurora (continuous), DynamoDB (35 days, optional).
+- Full DR plan needs data replication + DNS failover + compute AMIs + pre-built infrastructure in DR region.

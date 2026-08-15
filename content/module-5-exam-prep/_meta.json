@@ -1,0 +1,11 @@
+{
+  "id": "module-5",
+  "slug": "module-5-exam-prep",
+  "title": "Exam Preparation",
+  "shortTitle": "Exam Prep",
+  "domain": 0,
+  "weight": 0,
+  "description": "Domain cheat sheets, side-by-side service comparisons, and exam-day guidance to get you across the finish line.",
+  "color": "#64748B",
+  "estimatedHours": 5
+}

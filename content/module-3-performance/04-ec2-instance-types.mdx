@@ -1,0 +1,112 @@
+---
+title: "EC2 Instance Families & Compute Optimization"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "ec2-instance-types"
+order: 4
+domain: 3
+taskStatements: ["3.2"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["ec2", "instance-types", "gpu", "placement-groups", "enhanced-networking"]
+services: ["Amazon EC2"]
+---
+
+## EC2 Instance Naming Convention
+
+```
+m5.xlarge
+│ │  └── Size: nano, micro, small, medium, large, xlarge, 2xlarge, ...
+│ └── Generation: 5 (higher = newer, better price/performance)
+└── Family: m (general purpose)
+```
+
+## Instance Families
+
+### General Purpose: M and T families
+
+| Family | Characteristics |
+|---|---|
+| **T3, T3a, T4g** | Burstable performance. CPU credits accumulate when idle, spend during spikes. **Cheapest option for variable, low-average CPU workloads.** |
+| **M5, M6i, M6g** | Balanced CPU, memory, network. Web servers, app servers, small databases. |
+| **Mac** | macOS workloads. EC2 Mac dedicated hosts. |
+
+### Compute Optimized: C family
+High CPU-to-memory ratio:
+- **C5, C6i, C6g, C7g**: Web servers with high CPU needs, batch processing, gaming servers, HPC, video encoding, scientific modeling
+- Cost-effective when compute is the bottleneck, not memory
+
+### Memory Optimized: R, X, z families
+High memory-to-CPU ratio:
+- **R5, R6i**: In-memory databases (Redis, Memcached), real-time big data analytics, large in-memory caches
+- **X1, X2**: Largest memory (up to 24 TB). SAP HANA, large in-memory databases.
+- **z1d**: High core frequency (4.0 GHz). EDA simulations, relational databases needing fast per-core performance.
+
+### Storage Optimized: I, D, H families
+High sequential read/write or high IOPS from instance storage:
+- **I3, I3en, I4i**: NVMe instance storage, up to millions of IOPS. High-frequency OLTP databases, Elasticsearch, Cassandra.
+- **D3, D3en**: Dense HDD storage (up to 336 TB HDD). Distributed file systems, big data (Hadoop, MapReduce).
+- **H1**: High-disk throughput. HDFS, Hive, data-intensive workloads.
+
+### Accelerated Computing: P, G, Inf, Trn families
+GPU or specialized chips:
+- **P3, P4d**: NVIDIA Tesla V100/A100 GPUs. Machine learning training.
+- **G4ad, G4dn, G5**: NVIDIA T4/A10G GPUs. ML inference, video transcoding, game streaming.
+- **Inf1, Inf2**: AWS Inferentia chips. Optimized for ML inference (cheaper than GPU for inference).
+- **Trn1**: AWS Trainium. Optimized for ML training (cheaper than GPU).
+
+<ExamTip>
+Common exam pattern: "needs to run a database with very high IOPS" → Storage optimized (I3, I4i). "Memory-intensive in-memory cache" → Memory optimized (R5, X1). "ML training" → GPU (P4d) or Trainium. "ML inference" → G4, Inferentia, or Lambda.
+</ExamTip>
+
+## Placement Groups
+
+**Placement groups** control how EC2 instances are placed on underlying hardware:
+
+### Cluster Placement Group
+All instances placed in the **same AZ, same rack** — as close together as possible:
+- Lowest latency (10 Gbps+ instance-to-instance network)
+- Highest throughput
+- Risk: If the rack fails, all instances fail together
+- Use for: HPC, tightly coupled applications, low-latency requirements
+
+### Spread Placement Group
+Each instance is on a **different hardware rack**:
+- Maximum 7 instances per AZ (per spread group)
+- Each instance has its own hardware (independent failure domain)
+- Use for: Critical instances where rack failure should only affect one instance (e.g., Zookeeper nodes)
+
+### Partition Placement Group
+Divides instances into **logical partitions**, each on different racks:
+- Up to 7 partitions per AZ
+- Hundreds of instances total
+- Instances in one partition don't share hardware with instances in another partition
+- You can see which partition each instance is in (for topology-aware applications)
+- Use for: HDFS, HBase, Cassandra — distributed systems with rack awareness
+
+## Enhanced Networking
+
+**Enhanced Networking** uses SR-IOV (Single Root I/O Virtualization) to provide higher throughput, lower latency, and lower CPU utilization:
+- **ENA (Elastic Network Adapter)**: Up to 100 Gbps. Default for modern instance types.
+- **Intel 82599**: 10 Gbps. Older instances.
+
+**EFA (Elastic Fabric Adapter)**: Higher performance networking for HPC — enables MPI workloads with inter-node communication comparable to on-premises HPC clusters. Required for tightly coupled HPC jobs.
+
+## Instance Lifecycle and Purchasing Options (Performance Context)
+
+For performance workloads, avoid Spot Instances for critical paths — they can be interrupted. Use:
+- **On-Demand**: Always available, predictable performance
+- **Reserved (1 or 3 year)**: Same performance as On-Demand, discounted price
+- **Dedicated Hosts**: Physical server dedicated to you — for per-core/per-socket licensing (SQL Server, Windows) or compliance requirements
+- **Bare Metal instances** (e.g., `m5.metal`): Direct hardware access, no hypervisor overhead
+
+## Summary
+
+- **T-family**: Burstable. Good for variable workloads.
+- **C-family**: Compute optimized. High CPU ratio.
+- **R/X-family**: Memory optimized. In-memory DBs, caches.
+- **I/D-family**: Storage optimized. High IOPS or throughput from instance store.
+- **P/G-family**: GPU. ML training and inference, video.
+- **Cluster PG**: Same rack, lowest latency, HPC.
+- **Spread PG**: Different racks, max resilience for critical instances.
+- **Partition PG**: Rack-aware distributed systems (Hadoop, Cassandra).

@@ -1,0 +1,140 @@
+---
+title: "CloudFront & Global Accelerator"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "cloudfront-global-accelerator"
+order: 5
+domain: 3
+taskStatements: ["3.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["cloudfront", "cdn", "edge", "global-accelerator", "latency", "caching"]
+services: ["Amazon CloudFront", "AWS Global Accelerator"]
+---
+
+## The Global Latency Problem
+
+Your application is hosted in us-east-1. A user in Tokyo downloads a 1 MB JavaScript file:
+- Round-trip latency: ~200ms
+- Multiple requests (HTML, CSS, JS, images): Each adds ~200ms
+
+**Solution**: Cache content at edge locations close to users.
+
+## Amazon CloudFront
+
+**CloudFront** is AWS's CDN (Content Delivery Network). It caches content at **400+ edge locations** globally, serving it from close to the user.
+
+### How CloudFront Works
+
+```
+User (Tokyo)
+    ↓ Request for content
+CloudFront Edge (Tokyo)
+    ├── Cache HIT: Return cached content immediately (fast!)
+    └── Cache MISS: Forward to origin, cache response, return to user
+         └── Origin: S3, ALB, EC2, API Gateway, custom HTTP server
+```
+
+### CloudFront Origins
+
+| Origin | Description |
+|---|---|
+| **S3 bucket** | Static assets, static websites. Use Origin Access Control (OAC) to restrict bucket to CloudFront only. |
+| **Application Load Balancer** | Dynamic content from your application |
+| **EC2 instance** | Must have a public IP |
+| **Custom HTTP server** | Any public HTTP/HTTPS origin |
+| **API Gateway** | Serverless APIs |
+
+### CloudFront Caching
+
+**Cache behavior settings per path pattern:**
+- Default TTL: 24 hours
+- Min TTL: 0 seconds (bypass caching)
+- Max TTL: 1 year
+- Customize based on `Cache-Control` headers from origin
+
+**Cache invalidation**: Remove cached objects before TTL expires (e.g., after deploying new CSS):
+- `/*` invalidates all objects
+- Costs $0.005 per invalidation path after the first 1,000/month
+
+**Versioned filenames** (preferred over invalidation): `app.v2.js` instead of `app.js` — old version stays cached, new version is fetched fresh.
+
+### CloudFront Security Features
+
+- **HTTPS**: Enforce HTTPS between viewers and CloudFront, and between CloudFront and origin
+- **Field-Level Encryption**: Encrypt specific POST fields at the edge (credit card numbers stay encrypted all the way to your app)
+- **WAF integration**: Attach AWS WAF to CloudFront for L7 protection at the edge (before reaching your servers)
+- **Geo-restriction**: Block or allow access from specific countries
+- **Signed URLs and Signed Cookies**: Restrict access to specific objects for authenticated users (time-limited, signed with your private key)
+
+<ExamTip>
+**Signed URLs** = one URL, one object. **Signed Cookies** = one cookie, multiple objects. Use signed URLs for a specific download link; use signed cookies for premium content sections of a website.
+</ExamTip>
+
+### CloudFront Price Classes
+
+CloudFront pricing varies by edge location region. Price classes let you exclude expensive regions:
+- **Price Class All**: Best performance, most expensive (includes all regions)
+- **Price Class 200**: Excludes the most expensive regions
+- **Price Class 100**: Only the least expensive regions (US, Canada, Europe)
+
+### Origin Groups (Failover)
+
+Configure a **primary origin** and a **secondary origin**. If the primary returns specific error codes (502, 503, 504), CloudFront automatically retries with the secondary:
+
+```
+Primary: us-east-1 ALB
+Secondary: us-west-2 ALB (DR region)
+→ Automatic failover at the CloudFront layer
+```
+
+## AWS Global Accelerator
+
+**Global Accelerator** improves availability and performance of applications by routing traffic through AWS's global network:
+
+```
+User → Nearest AWS Edge Location → AWS global backbone → Your Application Endpoint
+                                   (NOT the public internet)
+```
+
+**Key differences from CloudFront:**
+
+<ComparisonTable
+  headers={["Feature", "CloudFront", "Global Accelerator"]}
+  rows={[
+    ["What it optimizes", "Content delivery, caching", "Network routing, not caching"],
+    ["Protocols", "HTTP/HTTPS", "TCP, UDP, HTTP, HTTPS"],
+    ["Caching", "Yes (edge caching)", "No caching"],
+    ["IPs", "Dynamic (DNS-based)", "2 static Anycast IPs per accelerator"],
+    ["Use case", "Web content, API responses with caching", "Non-HTTP (gaming, IoT, VoIP), IP whitelisting needs"],
+    ["Failover", "Origin groups", "Health checks, instant rerouting"],
+    ["DDoS protection", "Shield Standard (auto)", "Shield Standard (auto)"],
+  ]}
+/>
+
+**Global Accelerator key benefits:**
+- **Static IPs**: Two static Anycast IP addresses represent your application globally. Useful for IP whitelisting (firewalls, compliance).
+- **Instant failover**: Routes around failures in seconds (vs. DNS propagation with Route 53).
+- **TCP/UDP support**: Works for gaming, VoIP, IoT — not just HTTP.
+
+**Endpoints supported**: ALB, NLB, EC2, Elastic IPs in multiple regions.
+
+## When to Use Which
+
+| Scenario | Service |
+|---|---|
+| Cache static assets (images, JS, CSS) globally | CloudFront |
+| Speed up API responses with caching | CloudFront |
+| Protect web app from DDoS + SQLi | CloudFront + WAF |
+| Serve private content with time-limited access | CloudFront Signed URLs/Cookies |
+| Gaming app requiring UDP globally | Global Accelerator |
+| Application requiring fixed IP addresses globally | Global Accelerator |
+| Instant regional failover without DNS delay | Global Accelerator |
+
+## Summary
+
+- **CloudFront**: CDN with edge caching. 400+ edge locations. HTTPS, WAF, signed URLs.
+- **Global Accelerator**: Routes over AWS backbone. 2 static Anycast IPs. Works for TCP/UDP.
+- CloudFront = content caching + HTTP protection. Global Accelerator = routing optimization for any protocol.
+- Use **OAC** to restrict S3 bucket access to CloudFront only.
+- **Signed URLs**: One object. **Signed Cookies**: Multiple objects for a session.

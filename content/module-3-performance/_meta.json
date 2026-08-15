@@ -1,0 +1,11 @@
+{
+  "id": "module-3",
+  "slug": "module-3-performance",
+  "title": "Domain 3: Design High-Performing Architectures",
+  "shortTitle": "Performance",
+  "domain": 3,
+  "weight": 24,
+  "description": "EC2 instance types, EBS volume types, shared file storage, database performance, caching, CDN, and data pipeline services.",
+  "color": "#7C3AED",
+  "estimatedHours": 12
+}

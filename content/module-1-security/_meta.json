@@ -1,0 +1,11 @@
+{
+  "id": "module-1",
+  "slug": "module-1-security",
+  "title": "Domain 1: Design Secure Architectures",
+  "shortTitle": "Security",
+  "domain": 1,
+  "weight": 30,
+  "description": "The largest exam domain. Covers IAM, multi-account strategy, VPC security, encryption, secrets management, and threat detection.",
+  "color": "#2563EB",
+  "estimatedHours": 14
+}

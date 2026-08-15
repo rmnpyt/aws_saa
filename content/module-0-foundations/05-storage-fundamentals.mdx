@@ -1,0 +1,89 @@
+---
+title: "Storage Fundamentals"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "storage-fundamentals"
+order: 5
+domain: 0
+taskStatements: []
+estimatedMinutes: 20
+difficulty: "beginner"
+tags: ["storage", "block", "file", "object", "fundamentals"]
+services: ["Amazon EBS", "Amazon EFS", "Amazon S3"]
+---
+
+## Three Types of Storage
+
+AWS offers three fundamental storage paradigms. Choosing the right one is a frequent exam topic.
+
+<ComparisonTable
+  headers={["Type", "Model", "How accessed", "AWS Service", "Analogy"]}
+  rows={[
+    ["Block", "Fixed-size blocks, low-level", "Mounted to one EC2 instance (usually)", "Amazon EBS", "Hard drive"],
+    ["File", "Hierarchical directory tree", "Mounted via NFS/SMB, shared across instances", "Amazon EFS, FSx", "NAS / network drive"],
+    ["Object", "Flat namespace, key-value", "HTTP API (PUT/GET), globally accessible", "Amazon S3", "File cabinet with URL addresses"],
+  ]}
+/>
+
+## Block Storage (Amazon EBS)
+
+**EBS (Elastic Block Store)** volumes are raw storage attached to a single EC2 instance at a time (like a hard drive). They:
+- Exist in a single AZ
+- Persist independently of the EC2 instance (survives instance stop/termination)
+- Support snapshots (incremental backups to S3)
+- Are formatted with a file system (ext4, NTFS) by the operating system
+
+**When to use EBS:** Databases, OS boot volumes, applications requiring low-latency block I/O.
+
+## File Storage (Amazon EFS / FSx)
+
+**EFS (Elastic File System)** provides managed NFS that multiple EC2 instances can mount simultaneously. It:
+- Spans multiple AZs (regional)
+- Scales automatically — you don't provision capacity
+- Is ideal for shared data across a fleet of Linux servers
+
+**FSx** provides managed file systems for specific use cases:
+- **FSx for Windows File Server** — SMB protocol, Active Directory integration
+- **FSx for Lustre** — HPC, machine learning, fast scratch storage
+- **FSx for NetApp ONTAP** — Enterprise NAS with multi-protocol support
+
+**When to use EFS:** Web server content, application shared state, container persistent volumes.
+
+## Object Storage (Amazon S3)
+
+**S3 (Simple Storage Service)** stores data as **objects** in **buckets**. Each object has:
+- A **key** (unique name within the bucket, like `photos/2024/cat.jpg`)
+- The **value** (the actual file data, up to 5 TB per object)
+- **Metadata** (content type, user-defined tags, etc.)
+
+Key properties:
+- **Globally unique bucket names** — bucket names must be unique across all AWS accounts
+- **11 nines of durability** (99.999999999%) — AWS redundantly stores your objects
+- **Eventual consistency** within a Region for some operations (though now strongly consistent for GET/PUT)
+- **No hierarchy** — directories are simulated with `/` in key names
+
+**When to use S3:** Static websites, backups, logs, media storage, data lake storage, anything that doesn't need to be mounted as a drive.
+
+<ExamTip>
+The single most common wrong answer is selecting S3 when the question requires a mounted file system (multiple instances sharing data), or selecting EFS when only one instance needs storage. Always check whether shared access is required.
+</ExamTip>
+
+## Quick Decision Framework
+
+```
+Need to mount to EC2 as a drive?
+  → Single instance: EBS
+  → Multiple instances (Linux, shared): EFS
+  → Windows shared drive: FSx for Windows
+  → HPC / Lustre: FSx for Lustre
+
+Don't need to mount it?
+  → S3 (backups, media, static websites, data lake)
+  → S3 Glacier (archival, rarely accessed)
+```
+
+## Summary
+
+- **Block (EBS)**: Low-latency, one EC2 instance, like a hard drive. Use for databases and boot volumes.
+- **File (EFS/FSx)**: Shared file system, multiple EC2 instances can mount simultaneously.
+- **Object (S3)**: HTTP API access, unlimited scale, globally addressable. Use for everything else.

@@ -1,0 +1,171 @@
+---
+title: "EventBridge & Step Functions"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "eventbridge-step-functions"
+order: 9
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["eventbridge", "step-functions", "orchestration", "event-driven", "workflow"]
+services: ["Amazon EventBridge", "AWS Step Functions"]
+---
+
+## Amazon EventBridge
+
+**EventBridge** (formerly CloudWatch Events) is a serverless event bus that connects AWS services, SaaS applications, and your own applications using events.
+
+### Event Sources
+
+EventBridge receives events from:
+- **AWS services**: S3 (object created), EC2 (instance state change), RDS (snapshot complete), 100+ services
+- **Custom applications**: Your code can publish events to custom event buses
+- **SaaS partners**: Zendesk, GitHub, Datadog, PagerDuty, Shopify, and many others
+
+### Core Concepts
+
+| Component | Description |
+|---|---|
+| **Event** | A JSON message describing what happened (who, what, when) |
+| **Event bus** | A pipeline that receives events. `default` = AWS events. Custom buses for your apps. |
+| **Rule** | Matches events based on a pattern and routes matching events to targets |
+| **Target** | Where matching events are sent: Lambda, SQS, SNS, ECS task, Step Functions, etc. |
+
+**Example event (S3 object created):**
+```json
+{
+  "source": "aws.s3",
+  "detail-type": "Object Created",
+  "detail": {
+    "bucket": {"name": "my-uploads"},
+    "object": {"key": "uploads/photo.jpg"}
+  }
+}
+```
+
+**Rule pattern (match S3 uploads to specific bucket):**
+```json
+{
+  "source": ["aws.s3"],
+  "detail-type": ["Object Created"],
+  "detail": {"bucket": {"name": ["my-uploads"]}}
+}
+```
+
+### Scheduled Rules (Cron)
+
+EventBridge can run rules on a schedule:
+```
+cron(0 12 * * ? *)  # Every day at 12:00 UTC
+rate(5 minutes)     # Every 5 minutes
+```
+
+This is the primary way to schedule Lambda functions (replacing CloudWatch Events cron).
+
+### EventBridge Pipes
+
+**EventBridge Pipes** connect event sources to targets with optional filtering and enrichment — a point-to-point integration with built-in transformation:
+
+```
+SQS Queue → [Filter] → [Enrichment (Lambda)] → [Transform] → Target (Step Functions, etc.)
+```
+
+### EventBridge vs. SNS vs. SQS
+
+| | EventBridge | SNS | SQS |
+|---|---|---|---|
+| Pattern matching | Advanced JSON filtering | Filter policies | No |
+| External event sources | Yes (100+ SaaS partners) | No | No |
+| Schedule | Yes (cron rules) | No | No |
+| Durability | Retry with DLQ | No persistence | Up to 14 days |
+| Best for | Event-driven architecture, AWS service integration | Fan-out notifications | Work queue, buffer |
+
+<ExamTip>
+When a question involves responding to AWS service events (S3 uploads, EC2 state changes, RDS events), **EventBridge** is the answer. When it's about pub/sub notifications to multiple subscribers, use **SNS**. When it's a work queue, use **SQS**.
+</ExamTip>
+
+## AWS Step Functions
+
+**Step Functions** is a serverless workflow service that orchestrates multiple AWS services into complex workflows.
+
+### Why Step Functions?
+
+Complex workflows have multiple steps:
+1. Validate input
+2. Call an external API
+3. If successful, write to database
+4. Send notification
+5. If any step fails, run cleanup
+
+Without Step Functions, you'd manage state, retries, and error handling in code. Step Functions handles this declaratively.
+
+### State Types
+
+| State | Description |
+|---|---|
+| **Task** | Call a service (Lambda, ECS, SNS, SQS, DynamoDB, etc.) |
+| **Choice** | Branch based on condition (if/else) |
+| **Wait** | Pause for a time period or until a timestamp |
+| **Parallel** | Execute multiple branches simultaneously |
+| **Map** | Process each item in an array concurrently |
+| **Pass** | Pass state through without doing anything (useful for transforming input) |
+| **Succeed/Fail** | Terminal states |
+
+### Workflow Types
+
+**Standard Workflows:**
+- Up to 1-year execution duration
+- Exactly-once execution of each step
+- Async — execution IDs let you check status later
+- More expensive
+- Good for long-running processes, human approval steps
+
+**Express Workflows:**
+- Up to 5-minute execution duration
+- At-least-once execution
+- Synchronous or asynchronous
+- Much cheaper (better for high-volume, short-duration workflows)
+- Good for IoT data processing, data streaming, microservice orchestration
+
+### Error Handling
+
+Step Functions has built-in error handling per state:
+
+```json
+"Retry": [{"ErrorEquals": ["Lambda.ServiceException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2}],
+"Catch": [{"ErrorEquals": ["States.ALL"], "Next": "HandleError"}]
+```
+
+- **Retry**: Retry a failed state with exponential backoff
+- **Catch**: If retries fail, route to an error handling state
+
+### Human Approval Pattern
+
+Step Functions supports **waitForTaskToken** — the workflow pauses until an external system sends back a success or failure:
+
+```
+Start → Send Email with Approval Link (Task Token embedded)
+      ↓
+      WAIT (workflow paused)
+      ↓
+Human clicks Approve/Reject → Lambda sends TaskToken back to Step Functions
+      ↓
+Continue or abort workflow
+```
+
+## Common Patterns
+
+**EventBridge + Step Functions:**
+- S3 file uploaded → EventBridge rule → Step Functions workflow (validate, process, store, notify)
+
+**Step Functions + Lambda:**
+- Each task state calls a different Lambda function
+- Step Functions manages state, retries, and error flow between them
+
+## Summary
+
+- **EventBridge**: Event bus. Matches events from 100+ sources. Routes to targets via rules. Great for AWS service events, SaaS integration, and scheduled tasks.
+- **Step Functions**: Workflow orchestration. States (Task, Choice, Parallel, Wait). Built-in retry and error handling.
+- **Standard workflows**: Long-running (1 year), exactly-once. **Express workflows**: Short (5 min), high-volume.
+- **WaitForTaskToken**: Pause workflow for human approval or async external call.

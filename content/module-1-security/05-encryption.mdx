@@ -1,0 +1,122 @@
+---
+title: "Encryption: At Rest and In Transit"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "encryption"
+order: 5
+domain: 1
+taskStatements: ["1.3"]
+estimatedMinutes: 45
+difficulty: "intermediate"
+tags: ["kms", "encryption", "acm", "ssl", "tls", "cloudHSM", "s3"]
+services: ["AWS KMS", "AWS CloudHSM", "AWS Certificate Manager"]
+---
+
+## Encryption Overview
+
+**Encryption at rest**: Data is encrypted when stored on disk, preventing anyone with physical access to the hardware from reading it.
+
+**Encryption in transit**: Data is encrypted while traveling over a network (TLS/SSL), preventing eavesdropping.
+
+AWS provides managed services for both — you should almost never implement encryption yourself.
+
+## AWS KMS (Key Management Service)
+
+**KMS** is a managed service for creating and controlling cryptographic keys. It integrates with virtually every AWS storage and database service.
+
+### KMS Key Types
+
+| Type | Description | Use case |
+|---|---|---|
+| **AWS Managed Keys** | Created and managed by AWS for specific services (e.g., `aws/s3`) | Zero-effort encryption; minimal control |
+| **Customer Managed Keys (CMKs)** | You create and control them | Full control over key policy, rotation, deletion |
+| **Imported Keys** | You generate the key material and import it | Bring-your-own-key requirements |
+
+### Key Concepts
+
+**Key Policy**: Resource-based policy attached to a CMK that controls who can use or manage the key. Unlike IAM, you MUST explicitly allow the root account in the key policy, or even the account admin cannot access the key.
+
+**Envelope Encryption**: KMS doesn't encrypt your data directly — it:
+1. Generates a **Data Encryption Key (DEK)** using your CMK
+2. Returns the plaintext DEK (briefly used to encrypt your data)
+3. Returns the encrypted DEK (stored alongside your data)
+4. The plaintext DEK is discarded
+5. To decrypt: KMS decrypts the DEK → your code uses the DEK to decrypt data
+
+**Automatic Key Rotation**: Customer-managed CMKs can be set to rotate automatically every year. AWS keeps old key versions to decrypt data encrypted with previous versions.
+
+**Key Deletion**: CMKs must be scheduled for deletion with a minimum 7-day waiting period (default 30 days). This allows time to cancel if done accidentally.
+
+### S3 Encryption Options
+
+<ComparisonTable
+  headers={["Option", "Key managed by", "When to use"]}
+  rows={[
+    ["SSE-S3 (AES-256)", "AWS (S3 manages keys)", "Default encryption, no key management needed"],
+    ["SSE-KMS", "AWS KMS (you control the key)", "Audit key usage, control access to key, cross-account access"],
+    ["SSE-C", "Customer (you provide key per request)", "Bring your own key, key never stored in AWS"],
+    ["Client-side encryption", "Customer (encrypt before uploading)", "Maximum control, key never leaves your environment"],
+  ]}
+/>
+
+<ExamTip>
+SSE-KMS requires a KMS API call for every GET/PUT — this generates CloudTrail logs of who accessed what. It is the right answer when the question requires "auditing of who accessed specific S3 objects."
+</ExamTip>
+
+## AWS CloudHSM
+
+**CloudHSM** provides dedicated hardware security modules (HSMs) that you control exclusively. Unlike KMS (shared tenancy), CloudHSM gives you:
+
+- **FIPS 140-2 Level 3** validated hardware (KMS is Level 2)
+- Single-tenant HSM — your keys, your hardware
+- You manage the keys yourself (AWS cannot recover them if you lose access)
+- Used for compliance requirements demanding dedicated key storage
+
+**When to choose CloudHSM over KMS:**
+- Regulatory requirements specify dedicated HSMs
+- Need to use custom cryptographic algorithms KMS doesn't support
+- SSL/TLS offloading for web servers
+- Oracle Transparent Data Encryption (TDE)
+
+## Encryption in Transit: TLS/SSL
+
+**TLS** (Transport Layer Security) encrypts data in transit. "SSL" is the older term — they mean the same thing in practice.
+
+### AWS Certificate Manager (ACM)
+
+**ACM** provides free public TLS/SSL certificates for use with AWS services:
+
+- **Free**: Public certificates are free (private CA certificates cost money)
+- **Auto-renewal**: Certificates renew automatically (no manual renewal headaches)
+- **Integrated**: Works natively with ALB, NLB, CloudFront, API Gateway, Elastic Beanstalk
+
+**Important limitation**: ACM certificates are **not exportable** — you cannot download the private key and install it on your own server. They work only with supported AWS services.
+
+For non-AWS infrastructure, you need a third-party certificate or ACM Private CA.
+
+### Enforcing HTTPS
+
+To redirect all HTTP traffic to HTTPS on an ALB:
+1. Create an HTTPS listener (port 443) with an ACM certificate
+2. Add an HTTP listener (port 80) with a redirect action → HTTPS
+
+**S3 enforce HTTPS:**
+Add a bucket policy with a Condition that denies requests where `aws:SecureTransport` is `false`.
+
+## Encryption for Other Services
+
+| Service | At-rest encryption | In-transit |
+|---|---|---|
+| **RDS** | KMS (SSE) — enabled at creation | SSL enforced via parameter group |
+| **EBS** | KMS — enabled at volume creation | Encrypted at network layer |
+| **DynamoDB** | KMS — enabled by default (AWS managed) | TLS enforced by default |
+| **ElastiCache (Redis)** | KMS | TLS optional |
+| **S3** | SSE-S3 or SSE-KMS | HTTPS/TLS |
+
+## Summary
+
+- **KMS** = managed key service. Use CMKs for control and audit logging. Envelope encryption.
+- **CloudHSM** = dedicated hardware, FIPS Level 3, you own the keys. For compliance requirements.
+- **SSE-KMS on S3** = KMS-managed key, logs every access in CloudTrail — choose for audit requirements.
+- **ACM** = free TLS certificates, auto-renew, works with ALB/CloudFront/API Gateway.
+- Always encrypt data at rest (KMS) and in transit (TLS/ACM).

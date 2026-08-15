@@ -1,0 +1,122 @@
+---
+title: "AWS Cost Management Tools"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "cost-management-tools"
+order: 1
+domain: 4
+taskStatements: ["4.1"]
+estimatedMinutes: 35
+difficulty: "beginner"
+tags: ["cost-explorer", "budgets", "cost-anomaly", "billing", "cost-allocation"]
+services: ["AWS Cost Explorer", "AWS Budgets", "AWS Cost Anomaly Detection"]
+---
+
+## The AWS Cost Management Stack
+
+Understanding your spend is the first step to optimizing it. AWS provides a suite of tools:
+
+| Tool | Purpose |
+|---|---|
+| **AWS Cost Explorer** | Visualize and analyze spending trends |
+| **AWS Budgets** | Set alerts when spending approaches limits |
+| **Cost Anomaly Detection** | ML-powered detection of unexpected spend |
+| **AWS Cost and Usage Report (CUR)** | Detailed billing data for analysis |
+| **AWS Pricing Calculator** | Estimate costs before deploying |
+| **Savings Plans** | Commit to compute usage for discounts |
+
+## AWS Cost Explorer
+
+**Cost Explorer** lets you visualize, understand, and analyze your AWS spending:
+
+**Key features:**
+- View costs by service, account, region, tag, or time period
+- 13 months of historical data, 12-month forecast
+- **Right-sizing recommendations**: Suggests smaller EC2 instances based on actual utilization
+- **Savings Plans recommendations**: Shows how much you'd save by committing to specific compute usage
+- **Cost allocation tags**: Filter and group costs by custom tags
+
+**Accessing**: AWS Console → Billing → Cost Explorer
+
+## AWS Budgets
+
+**Budgets** lets you set thresholds and receive alerts:
+
+| Budget type | Alert when |
+|---|---|
+| **Cost budget** | Actual or forecasted spend exceeds $X |
+| **Usage budget** | EC2 hours, S3 GB, etc. exceeds N units |
+| **RI utilization budget** | Reserved Instance utilization drops below X% |
+| **RI coverage budget** | Coverage drops below X% of total usage |
+| **Savings Plans utilization/coverage** | Similar to RI budgets |
+
+**Actions**: Budgets can automatically take actions when thresholds are hit (apply SCPs, notify via SNS, run Lambda).
+
+**Example**: Set a monthly budget of $500. Alert at 80% ($400). Stop all EC2 instances if 100% is reached (automated action).
+
+## AWS Cost Anomaly Detection
+
+Uses ML to detect unusual spending patterns:
+- Learns your normal spending patterns
+- Alerts when spending deviates significantly from normal
+- No threshold to configure — ML sets it automatically
+- Sends alerts via SNS or email
+
+## AWS Cost and Usage Report (CUR)
+
+The most detailed billing data available:
+- Delivered to S3 in CSV or Parquet format
+- Hourly or daily granularity
+- Includes every line item for every resource
+- Can be queried with Athena or loaded into Redshift for analysis
+
+CUR is the foundation for advanced cost analytics and chargeback reports.
+
+## Cost Allocation Tags
+
+**Tags** are key-value metadata attached to resources. With cost allocation tags:
+- AWS categorizes costs by tag values
+- Visible in Cost Explorer and CUR
+
+**Example tags:**
+```
+Environment = production
+Team = payments
+Project = checkout-redesign
+Owner = alice@company.com
+```
+
+**AWS-generated tags**: Automatically applied (e.g., `aws:createdBy`).
+**User-defined tags**: You create and apply these.
+
+You must **activate** tags as cost allocation tags in the Billing console before they appear in reports.
+
+<ExamTip>
+Tags are the primary mechanism for cost attribution in multi-team AWS environments. The exam often tests the concept: "How do you break down costs by team?" → Implement resource tagging + cost allocation tags + Cost Explorer filters.
+</ExamTip>
+
+## AWS Pricing Calculator
+
+The **Pricing Calculator** (calc.aws) lets you estimate costs before deploying:
+- Build a detailed bill for your planned architecture
+- Compare instance types and purchase options
+- Export estimates for sharing
+
+## Organizations and Consolidated Billing
+
+With **AWS Organizations consolidated billing**:
+- One invoice for all accounts
+- **Volume discounts**: Usage across all accounts is aggregated for volume pricing tiers
+- **Reserved Instance sharing**: RIs purchased in any account can benefit all accounts in the org (if opted in)
+- **Savings Plans sharing**: Same as RI sharing
+
+This means a large organization can buy Reserved Instances in a central account and have them apply to instances in any member account.
+
+## Summary
+
+- **Cost Explorer**: Visualize past and forecast future spending. Right-sizing and Savings Plans recommendations.
+- **Budgets**: Set spending/usage thresholds with alerts and automated actions.
+- **Cost Anomaly Detection**: ML-based unusual spend alerts. No threshold configuration needed.
+- **CUR**: Most detailed billing data. Query with Athena.
+- **Tags**: Key mechanism for cost allocation by team, project, environment.
+- **Consolidated billing**: Aggregates usage for volume discounts and RI sharing across accounts.

@@ -1,0 +1,115 @@
+---
+title: "Application Protection: WAF, Shield & Cognito"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "waf-shield"
+order: 8
+domain: 1
+taskStatements: ["1.2"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["waf", "shield", "ddos", "cognito", "firewall-manager", "application-security"]
+services: ["AWS WAF", "AWS Shield", "Amazon Cognito", "AWS Firewall Manager"]
+---
+
+## AWS WAF (Web Application Firewall)
+
+**WAF** is a web application firewall that filters HTTP/HTTPS traffic to protect against common web exploits.
+
+**What WAF protects against:**
+- SQL injection (SQLi)
+- Cross-site scripting (XSS)
+- Bad bots and scrapers
+- Rate-based attacks (too many requests from one IP)
+- Custom application-specific threats
+
+**Where WAF is deployed:**
+- Amazon CloudFront (edge — stops attacks before they reach your origin)
+- Application Load Balancer (ALB)
+- Amazon API Gateway
+- AWS AppSync
+
+**WAF Components:**
+
+| Component | Description |
+|---|---|
+| **Web ACL** | A container for rules; attached to a CloudFront or ALB |
+| **Rules** | Conditions to match and actions to take (allow, block, count, CAPTCHA) |
+| **Rule Groups** | Reusable sets of rules (your own or AWS Managed Rule Groups) |
+| **AWS Managed Rule Groups** | Pre-built rules for SQLi, XSS, OWASP Top 10, specific CVEs |
+
+**Rate-based rules**: Automatically block IPs that exceed a threshold (e.g., 1000 requests in 5 minutes).
+
+<ExamTip>
+WAF operates at **Layer 7** (HTTP). For Layer 3/4 DDoS protection (SYN floods, UDP reflection), you need Shield. WAF can't protect against network-layer attacks.
+</ExamTip>
+
+## AWS Shield
+
+**Shield** provides **DDoS (Distributed Denial of Service) protection**.
+
+<ComparisonTable
+  headers={["Tier", "Shield Standard", "Shield Advanced"]}
+  rows={[
+    ["Cost", "Free (automatic)", "$3,000/month + data transfer out"],
+    ["Coverage", "Network (L3/L4) DDoS", "L3, L4, and L7 (with WAF integration)"],
+    ["What it protects", "SYN floods, UDP reflection, volumetric attacks", "All of Standard + application-layer attacks"],
+    ["Support", "None", "24/7 DDoS Response Team (DRT)"],
+    ["Cost protection", "None", "AWS credits if a DDoS causes auto-scaling costs"],
+    ["DDoS visibility", "None", "Real-time attack diagnostics and reports"],
+  ]}
+/>
+
+**Shield Standard** is enabled automatically for all AWS customers at no cost. It protects:
+- Amazon CloudFront
+- Route 53
+- ELB (any customer using these services gets protection)
+
+**Shield Advanced** is recommended for:
+- Applications highly sensitive to DDoS (financial, gaming, media)
+- Organizations that need 24/7 DDoS response support
+- Protecting resources not covered by Standard (EC2, ELB, EIP)
+
+## Amazon Cognito
+
+**Cognito** provides user authentication and authorization for web and mobile apps.
+
+### User Pools
+A **User Pool** is a user directory that handles:
+- Sign-up and sign-in (username/password, or social login via Google/Facebook/Apple)
+- Multi-factor authentication (MFA)
+- Email and phone verification
+- Password policies
+- Returns **JWT tokens** (ID token, access token, refresh token)
+
+### Identity Pools (Federated Identities)
+An **Identity Pool** provides temporary AWS credentials to authenticated users so they can directly access AWS services:
+- Federated login: Cognito User Pool, Google, Facebook, Apple, SAML, OpenID Connect
+- Users get temporary IAM credentials (via STS) scoped to specific permissions
+- Common use case: Mobile app user accesses their own S3 folder directly
+
+**Typical flow:**
+```
+User → Cognito User Pool (authenticates) → JWT token
+JWT token → Cognito Identity Pool (exchanges for AWS credentials)
+AWS credentials → Access S3/DynamoDB/etc. directly
+```
+
+<ExamTip>
+"Users need to log into a web app and then access their own S3 files." The answer involves both: **User Pool** (authentication) → **Identity Pool** (AWS credentials for S3 access).
+</ExamTip>
+
+## AWS Firewall Manager
+
+**Firewall Manager** centrally manages WAF rules, Shield Advanced, Security Groups, and Network Firewall policies across multiple accounts in AWS Organizations.
+
+**Key use case**: An enterprise wants to ensure all ALBs in all accounts have a specific WAF rule blocking SQLi. Firewall Manager deploys and enforces this centrally.
+
+## Summary
+
+- **WAF**: L7 HTTP firewall. Protects against SQLi, XSS, bad bots. Attaches to CloudFront, ALB, API Gateway.
+- **Shield Standard**: Free DDoS protection for all AWS customers at L3/L4.
+- **Shield Advanced**: Paid, 24/7 DRT support, L7 protection with WAF, cost protection.
+- **Cognito User Pools**: User authentication, sign-up/in, JWT tokens.
+- **Cognito Identity Pools**: Exchange identity tokens for temporary AWS credentials.
+- **Firewall Manager**: Central WAF/Shield policy management across Organizations.

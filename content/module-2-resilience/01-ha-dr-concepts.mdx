@@ -1,0 +1,118 @@
+---
+title: "High Availability & Disaster Recovery Concepts"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "ha-dr-concepts"
+order: 1
+domain: 2
+taskStatements: ["2.1", "2.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["ha", "dr", "rto", "rpo", "multi-az", "failover"]
+services: []
+---
+
+## High Availability vs. Disaster Recovery
+
+**High Availability (HA)**: The system remains operational during failures within the primary region by eliminating single points of failure.
+
+**Disaster Recovery (DR)**: The ability to recover from a catastrophic event (entire region down, data corruption) with an acceptable level of data loss and downtime.
+
+Both are separate concerns with different solutions, costs, and architectures.
+
+## Two Critical Metrics
+
+### RTO (Recovery Time Objective)
+**How long can the business tolerate being down?**
+
+- RTO of 1 hour: Acceptable to be offline for 1 hour during a disaster
+- RTO of 15 minutes: Must be back online within 15 minutes
+- RTO of 0: No downtime tolerance — requires active-active multi-region
+
+Lower RTO = more infrastructure cost.
+
+### RPO (Recovery Point Objective)
+**How much data can the business afford to lose?**
+
+- RPO of 24 hours: Acceptable to lose up to 24 hours of data
+- RPO of 1 hour: Must replicate data at least every 60 minutes
+- RPO of 0: Zero data loss tolerance — requires synchronous replication
+
+Lower RPO = more replication overhead.
+
+<KeyConcept title="RTO vs. RPO">
+RTO is about **time** (how long can you be down). RPO is about **data** (how much data can you lose). A backup every 24 hours means RPO = 24 hours. Failover in 10 minutes means RTO = 10 minutes.
+</KeyConcept>
+
+## DR Strategies (Ordered by Cost and Recovery Speed)
+
+### 1. Backup and Restore (cheapest, slowest)
+- Back up data to S3 or cross-region
+- No infrastructure running in the DR region
+- To recover: provision all infrastructure + restore backups
+
+**RTO**: Hours | **RPO**: Hours | **Cost**: Very low
+
+**AWS tools**: S3 Cross-Region Replication, AWS Backup, AMI snapshots
+
+### 2. Pilot Light (cold standby)
+- Core infrastructure (database replication, core services) is always running in DR region
+- Application servers are stopped or only run minimal instances
+- To recover: launch application servers and scale up
+
+**RTO**: 10s of minutes | **RPO**: Minutes | **Cost**: Low
+
+**Key**: Database is always being replicated, so data is fresh.
+
+### 3. Warm Standby
+- Fully functional smaller-scale copy is always running in DR region
+- Can handle limited traffic at reduced scale
+- To recover: scale up the DR environment to full capacity
+
+**RTO**: Minutes | **RPO**: Seconds to minutes | **Cost**: Medium
+
+### 4. Multi-Site Active-Active (most expensive, fastest)
+- Full capacity running in both (or more) regions simultaneously
+- Traffic distributed across regions (Route 53 latency routing)
+- A region failure just removes that region from traffic routing — no recovery needed
+
+**RTO**: Near zero | **RPO**: Near zero | **Cost**: High (2x infrastructure)
+
+## Multi-AZ vs. Multi-Region
+
+| | Multi-AZ | Multi-Region |
+|---|---|---|
+| **Scope** | Protects against AZ failure | Protects against regional disaster |
+| **Latency** | ~1 ms between AZs | ~10-100 ms between regions |
+| **Data sync** | Synchronous (RDS Multi-AZ, EFS) | Often asynchronous |
+| **Failover** | Automatic (RDS, ALB, EFS) | Usually requires manual trigger or Route 53 health checks |
+| **Cost** | ~2x single-AZ | ~2x single-region + data transfer |
+| **Primary use** | Standard HA (99.99% SLA) | Disaster recovery |
+
+## AWS Availability and SLAs
+
+- Individual AZs are designed for 99.99% availability (4 nines = ~53 min downtime/year)
+- Multi-AZ deployments can achieve 99.99%+ at the application level
+- Multi-region active-active can approach 99.999% (5 nines = ~5 min downtime/year)
+
+## Resilience Best Practices
+
+1. **Eliminate single points of failure**: Deploy across multiple AZs minimum
+2. **Automate failover**: Use ALB health checks, RDS Multi-AZ auto-failover, Auto Scaling
+3. **Decouple components**: SQS, SNS between services so one failure doesn't cascade
+4. **Stateless compute**: Store session state in ElastiCache/DynamoDB so any instance can serve any request
+5. **Data replication**: Synchronous for HA (Multi-AZ), asynchronous for DR (cross-region)
+6. **Test your DR plan**: Run GameDays and chaos engineering exercises (AWS Fault Injection Simulator)
+
+<ExamTip>
+When an exam question mentions "an entire region fails" — think **Multi-Region DR** strategy. When it says "an AZ fails" — think **Multi-AZ** with automatic failover (ALB + Auto Scaling + RDS Multi-AZ).
+</ExamTip>
+
+## Summary
+
+- **RTO** = max acceptable downtime. **RPO** = max acceptable data loss.
+- **Backup/Restore**: Cheapest, slowest (hours RTO). Store backups cross-region.
+- **Pilot Light**: Core infrastructure always running, app servers off. Minutes RTO.
+- **Warm Standby**: Reduced capacity always running. Minutes RTO, seconds RPO.
+- **Multi-Site Active-Active**: Full capacity both regions, near-zero RTO/RPO. Most expensive.
+- Multi-AZ protects against AZ failures (automatic). Multi-Region protects against disasters.

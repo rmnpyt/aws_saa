@@ -1,0 +1,131 @@
+---
+title: "Route 53: DNS & Resilience"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "route53-resilience"
+order: 4
+domain: 2
+taskStatements: ["2.1", "2.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["route53", "dns", "health-checks", "failover", "routing-policies", "latency"]
+services: ["Amazon Route 53"]
+---
+
+## Route 53 Overview
+
+**Amazon Route 53** is AWS's highly available and scalable DNS service. It is named after port 53, the DNS port.
+
+Beyond basic DNS resolution, Route 53 provides **traffic routing** and **health checking** that are essential for building resilient multi-region architectures.
+
+## DNS Record Types (Exam Essential)
+
+| Record | Purpose | Example |
+|---|---|---|
+| **A** | Maps hostname to IPv4 address | `api.example.com → 1.2.3.4` |
+| **AAAA** | Maps hostname to IPv6 address | `api.example.com → 2001::1` |
+| **CNAME** | Maps hostname to another hostname | `www → api.example.com` |
+| **Alias** | AWS-specific; maps hostname to AWS resource | `example.com → ALB DNS name` |
+| **MX** | Mail server | — |
+| **TXT** | Text records (domain verification, SPF) | — |
+| **NS** | Name server records for a hosted zone | — |
+
+### Alias vs. CNAME
+- **CNAME** cannot be created at the zone apex (root domain). `CNAME example.com → other.com` is INVALID.
+- **Alias** can point to the zone apex AND to AWS resources (ALB, CloudFront, S3 website, API Gateway). It's free (no charge for Alias queries to AWS resources).
+
+<ExamTip>
+Use **Alias records** to point `example.com` (the zone apex) to an ALB or CloudFront distribution. CNAME records cannot be used for the zone apex.
+</ExamTip>
+
+## Health Checks
+
+Route 53 can monitor the health of your endpoints:
+- **HTTP/HTTPS health check**: Checks a URL every 10 or 30 seconds; expects a 2xx/3xx response
+- **TCP health check**: Checks if a port is open
+- **Calculated health checks**: Combines results of multiple health checks (AND/OR logic)
+- **CloudWatch alarm health check**: Mark healthy/unhealthy based on a CloudWatch alarm
+
+Health checks can monitor endpoints globally from multiple AWS regions simultaneously.
+
+## Routing Policies
+
+### Simple Routing
+One record with one or more values. No health checks. Route 53 returns all values in random order.
+- One record: `www → 1.2.3.4`
+- Multiple values in one record: client picks one at random
+
+### Failover Routing
+**Primary/secondary failover**. Route 53 returns the primary unless it fails health checks, then switches to secondary.
+- Primary: Production ALB (with health check)
+- Secondary: Maintenance page in S3 or DR region ALB
+
+### Weighted Routing
+Split traffic between resources by percentage:
+```
+Record A: weight 70 → Production ALB (70% of traffic)
+Record B: weight 30 → New version ALB (30% of traffic)
+```
+Use for **A/B testing** and **blue/green deployments**.
+
+### Latency-Based Routing
+Route traffic to the AWS region with the lowest network latency for the user:
+- User in Asia → Route 53 routes to ap-southeast-1
+- User in Europe → Route 53 routes to eu-west-1
+
+Must have resources in multiple regions. Uses AWS's latency database, not real-time measurement.
+
+### Geolocation Routing
+Route based on the **geographic location** of the user (country or continent):
+```
+Users in Germany → eu-central-1 endpoint
+Users in USA → us-east-1 endpoint
+All others → default endpoint
+```
+Use for legal/compliance restrictions, localized content.
+
+**Geolocation vs. Latency routing**: Geolocation is about WHERE the user is (country/region). Latency is about which endpoint is FASTEST for them. A user in Germany might have lower latency to a US server if the German server is overloaded.
+
+### Geoproximity Routing (Traffic Flow)
+Route based on location of your resources AND users. You can shift traffic with a **bias** value:
+- Bias +50 for us-east-1: Routes more traffic to us-east-1 than geographic proximity would suggest
+- Requires Route 53 Traffic Flow
+
+### Multi-Value Answer Routing
+Returns up to 8 healthy records randomly. Like simple routing but with health checks. **Not a substitute for a load balancer** — the client picks randomly, so it's a best-effort distribution.
+
+## Routing Policy Cheat Sheet
+
+| Scenario | Policy |
+|---|---|
+| Route to one resource, no logic needed | Simple |
+| Primary + backup failover | Failover |
+| A/B testing, blue/green deployment | Weighted |
+| Route to lowest-latency AWS region | Latency-Based |
+| Country/region-specific content or restrictions | Geolocation |
+| Client-side load balancing across health-checked endpoints | Multi-Value Answer |
+
+## Route 53 as a Resilience Layer
+
+Route 53 enables multi-region active-passive failover:
+
+```
+1. Primary in us-east-1: Route 53 FAILOVER PRIMARY → us-east-1 ALB
+   (with health check on the us-east-1 ALB)
+2. Secondary in eu-west-1: Route 53 FAILOVER SECONDARY → eu-west-1 ALB
+
+When us-east-1 ALB fails health checks:
+→ Route 53 automatically switches DNS responses to eu-west-1 ALB
+→ New DNS lookups resolve to the DR region
+```
+
+**Note**: DNS failover is not instant — TTL (Time to Live) controls how long clients cache the old answer. Keep TTL low (60 seconds) for failover records.
+
+## Summary
+
+- **Alias records**: Use for zone apex and AWS resources. Free. Preferred over CNAME for AWS targets.
+- **Failover**: Health-check-based primary/secondary. Use for DR.
+- **Weighted**: Traffic splitting by percentage. Use for A/B testing.
+- **Latency-based**: Route to lowest-latency region. Use for global apps.
+- **Geolocation**: Route based on user's country. Use for compliance or localization.
+- Keep TTL low (60s) for records that might need to failover.

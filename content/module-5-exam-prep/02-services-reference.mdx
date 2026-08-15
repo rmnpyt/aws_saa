@@ -1,0 +1,122 @@
+---
+title: "Top 50 AWS Services Quick Reference"
+module: "module-5-exam-prep"
+moduleTitle: "Module 5: Exam Preparation"
+slug: "services-reference"
+order: 2
+domain: 0
+taskStatements: []
+estimatedMinutes: 30
+difficulty: "beginner"
+tags: ["services", "reference", "cheat-sheet", "quick-reference"]
+services: []
+---
+
+## Compute
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **EC2** | Virtual servers. Most flexible compute. | Any workload needing full OS control |
+| **Lambda** | Serverless functions. Pay per invocation. | Event-driven, short-lived, stateless tasks |
+| **ECS** | Container orchestration (Docker). AWS proprietary. | Containerized apps, microservices |
+| **EKS** | Managed Kubernetes. | When you need K8s or K8s portability |
+| **Fargate** | Serverless compute for ECS and EKS. | Containers without managing servers |
+| **Elastic Beanstalk** | PaaS for apps. Manages infrastructure. | Web apps, when you want managed infra |
+| **Batch** | Managed batch job processing. | Large-scale batch compute (ML training, simulations) |
+
+## Storage
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **S3** | Object storage. 11 nines durability. | Static assets, backups, data lake, anything not on a running server |
+| **EBS** | Block storage for EC2. One AZ. | OS disk, databases, anything needing block access on EC2 |
+| **EFS** | Managed NFS file system. Multi-AZ. | Shared file access across Linux EC2 instances |
+| **FSx for Windows** | Managed Windows file server (SMB). | Windows workloads needing shared file storage |
+| **FSx for Lustre** | High-performance parallel file system. | HPC, ML training, big data |
+| **S3 Glacier** | Low-cost archival storage. | Long-term data archival |
+| **Storage Gateway** | On-premises to AWS storage bridge. | Hybrid storage, migrating to S3 from on-prem NFS/SMB |
+
+## Databases
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **RDS** | Managed relational DB (MySQL, Postgres, Oracle, SQL Server). | Relational workloads with standard SQL |
+| **Aurora** | AWS-optimized relational DB. MySQL/PostgreSQL compatible. | Relational workloads needing higher performance/HA than RDS |
+| **DynamoDB** | Serverless key-value NoSQL. Millisecond latency. | Variable, large-scale key-value workloads |
+| **ElastiCache** | In-memory cache (Redis or Memcached). | Sub-millisecond caching, session storage |
+| **Redshift** | Data warehouse. Columnar. Petabyte-scale. | Analytics, BI, SQL on huge datasets |
+| **DocumentDB** | Managed MongoDB-compatible database. | Document workloads (JSON), MongoDB migration |
+| **Neptune** | Managed graph database. | Social graphs, fraud detection, recommendation engines |
+| **Timestream** | Time-series database. | IoT telemetry, metrics, logs with timestamps |
+
+## Networking
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **VPC** | Virtual private cloud. Your isolated network. | Foundation for all AWS deployments |
+| **ALB** | L7 load balancer. Path/host routing. | Web applications, microservices, HTTP routing |
+| **NLB** | L4 load balancer. Static IPs. Ultra-low latency. | TCP/UDP apps, PrivateLink, gaming |
+| **CloudFront** | CDN with edge caching. WAF integration. | Web content delivery, API caching |
+| **Route 53** | DNS with routing policies and health checks. | Global DNS, failover, latency routing |
+| **Global Accelerator** | Route via AWS backbone. 2 static IPs. | Non-HTTP, IP whitelisting, instant failover |
+| **Direct Connect** | Dedicated private fiber to AWS. | High-bandwidth, consistent latency to AWS |
+| **Site-to-Site VPN** | Encrypted IPSec tunnel over internet. | Secure on-premises to AWS connectivity |
+| **Transit Gateway** | Hub for many VPC and VPN connections. | Many VPCs need to interconnect |
+
+## Security & Identity
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **IAM** | Identity and access management. | Control who can do what in your AWS account |
+| **STS** | Issues temporary credentials. | Cross-account access, federation |
+| **IAM Identity Center** | SSO for AWS accounts. | Humans accessing multiple AWS accounts |
+| **KMS** | Managed encryption key service. | Encrypt data at rest in any AWS service |
+| **CloudHSM** | Dedicated hardware HSM. FIPS 140-2 Level 3. | Compliance requiring dedicated HSM |
+| **Secrets Manager** | Stores and rotates secrets. | Database passwords with auto-rotation |
+| **ACM** | Free TLS certificates for AWS services. | HTTPS on ALB, CloudFront, API Gateway |
+| **WAF** | L7 web application firewall. | Protect against SQLi, XSS, bad bots |
+| **Shield** | DDoS protection. | Standard (free, all), Advanced (paid, comprehensive) |
+| **GuardDuty** | ML threat detection from logs. | Detect active threats in your account |
+| **Inspector** | Vulnerability scanning. | Find CVEs in EC2, ECR images, Lambda |
+| **Macie** | Sensitive data discovery in S3. | PII, credit card data in S3 |
+| **CloudTrail** | API call audit log. | Who did what, when |
+| **Config** | Resource configuration history + compliance. | What is the state of my resources? |
+| **Organizations** | Multi-account management. SCPs. | Multi-account governance and billing |
+
+## Messaging & Integration
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **SQS** | Message queue. Pull-based. | Decoupling services, work queues, buffering |
+| **SNS** | Pub/sub notification. Push-based. | Fan-out to multiple subscribers |
+| **EventBridge** | Event bus. Pattern-based routing. | AWS service events, SaaS integration, scheduled tasks |
+| **Kinesis Streams** | Real-time streaming. Multiple consumers. | Real-time analytics, multiple consumers of same stream |
+| **Kinesis Firehose** | Streaming to S3/Redshift/OpenSearch. | Load streaming data to storage |
+| **Step Functions** | Workflow orchestration. | Multi-step processes with retries and error handling |
+| **Amazon MQ** | Managed ActiveMQ/RabbitMQ. | Migrating from on-premises message broker |
+
+## Analytics & ML
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **Athena** | Serverless SQL on S3. | Ad-hoc queries on data in S3 |
+| **Glue** | Managed ETL service + Data Catalog. | Transform and load data between stores |
+| **EMR** | Managed Hadoop/Spark cluster. | Big data processing, ML at scale |
+| **OpenSearch** | Managed search and analytics. | Log analytics, full-text search |
+| **QuickSight** | Managed BI dashboards. | Business intelligence, data visualization |
+| **SageMaker** | Full ML platform. | Build, train, deploy custom ML models |
+
+## Cost & Operations
+
+| Service | One-line description | When to use |
+|---|---|---|
+| **Cost Explorer** | Visualize spending and forecasts. | Understand your AWS bill |
+| **Budgets** | Spending alerts and actions. | Prevent budget overruns |
+| **Trusted Advisor** | Best practice recommendations. | Find security issues, idle resources, savings |
+| **Compute Optimizer** | Right-sizing recommendations. | Find over-provisioned EC2, Lambda, EBS |
+| **CloudWatch** | Metrics, logs, alarms, dashboards. | Monitor and alert on AWS resources |
+| **CloudFormation** | Infrastructure as Code. | Provision AWS resources declaratively |
+
+## Summary
+
+These 50 services cover 90%+ of SAA-C03 exam questions. Know the one-line description for each and the primary use case scenario. For each service, ask yourself: "What problem does this solve?" — that's the likely exam scenario.

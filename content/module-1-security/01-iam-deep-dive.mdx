@@ -1,0 +1,154 @@
+---
+title: "IAM Deep Dive"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "iam-deep-dive"
+order: 1
+domain: 1
+taskStatements: ["1.1"]
+estimatedMinutes: 50
+difficulty: "intermediate"
+tags: ["iam", "users", "groups", "roles", "policies", "security"]
+services: ["IAM", "AWS STS"]
+---
+
+## IAM: Identity and Access Management
+
+**IAM** is a global AWS service that controls **who** (authentication) can do **what** (authorization) on **which resources** (scope). It is free and foundational to every AWS security design.
+
+## The Four Core IAM Components
+
+### 1. IAM Users
+
+An **IAM user** is a permanent identity representing a specific person or application. Users have:
+- A username and optional password (for console access)
+- Optional **access keys** (Access Key ID + Secret Access Key) for CLI/API access
+- Permissions granted directly via policies or through group membership
+
+**Best practices:**
+- One IAM user per person
+- Apply least-privilege permissions
+- Rotate access keys every 90 days
+- Enable MFA for all IAM users with console access
+- **Never use IAM user access keys in production code** — use IAM roles instead
+
+### 2. IAM Groups
+
+An **IAM group** is a collection of IAM users. Attach policies to groups, not individual users.
+
+```
+Group: "Developers"
+Policy: AmazonEC2FullAccess, AmazonS3ReadOnlyAccess
+
+Users in group: Alice, Bob, Charlie
+→ All three users inherit the group's permissions
+```
+
+Groups **cannot be nested** (no groups within groups).
+
+### 3. IAM Roles
+
+An **IAM role** is a temporary identity with no long-term credentials. A role has:
+- A **trust policy** — defines WHO can assume this role (EC2 service, another account, Cognito users)
+- **Permission policies** — defines WHAT the role can do
+
+When assumed, AWS STS issues **temporary credentials** (Access Key + Secret Key + Session Token) that expire.
+
+**Key use cases:**
+- EC2 instance accessing S3 (EC2 instance role)
+- Lambda function reading DynamoDB
+- Cross-account access
+- Human SSO via IAM Identity Center
+- Federated users (Cognito, SAML)
+
+<KeyConcept title="Why use roles instead of access keys?">
+Access keys are permanent — if leaked, an attacker has indefinite access. Role temporary credentials expire automatically (15 minutes to 12 hours). Always prefer roles over access keys for applications.
+</KeyConcept>
+
+### 4. IAM Policies
+
+A **policy** is a JSON document that defines permissions. Policy structure:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::my-bucket/*",
+      "Condition": {
+        "IpAddress": {"aws:SourceIp": "10.0.0.0/8"}
+      }
+    }
+  ]
+}
+```
+
+**Policy types:**
+
+| Type | Scope | Notes |
+|---|---|---|
+| **Identity-based** | Attached to users, groups, roles | Controls what the identity can do |
+| **Resource-based** | Attached to the resource (S3 bucket, SQS queue) | Controls who can access the resource |
+| **SCP (Service Control Policy)** | AWS Organizations level | Maximum permissions boundary for accounts |
+| **Permission Boundary** | Attached to a user/role | Maximum permissions the entity can ever have |
+| **Session Policy** | Passed when assuming a role | Further restricts session permissions |
+
+## IAM Policy Evaluation Logic
+
+When a request is made, AWS evaluates policies in this order:
+
+1. **Explicit Deny** — If ANY policy denies, the request is denied (always wins)
+2. **Explicit Allow** — If a policy allows and nothing denies, the request is allowed
+3. **Implicit Deny** — If nothing allows, the request is denied (default)
+
+<ExamTip>
+"What happens when a resource-based policy allows but an identity-based policy doesn't?" — In the SAME account, an **Allow** in either policy is sufficient (they're additive). Across accounts, BOTH must allow the action.
+</ExamTip>
+
+## Permission Boundaries
+
+A **permission boundary** is an advanced IAM feature that sets the maximum permissions a user or role can have, even if their policies would grant more.
+
+```
+User's attached policies: AdministratorAccess (full access)
+Permission boundary: Only allows S3 and EC2
+
+Effective permissions: S3 and EC2 only
+(Boundary restricts what policies can actually grant)
+```
+
+Permission boundaries are critical when you want to delegate IAM permission management without allowing unlimited escalation.
+
+## IAM Best Practices Summary
+
+| Practice | Why |
+|---|---|
+| Enable MFA for root and all IAM users | Prevents credential theft attacks |
+| Use roles for applications | Temporary credentials, no rotation needed |
+| Apply least privilege | Minimize blast radius of any compromise |
+| Use IAM groups for user permissions | Easier to manage than per-user policies |
+| Never use root for daily tasks | Root can't be restricted by any policy |
+| Enable AWS CloudTrail | Audit trail of all API calls |
+| Rotate access keys every 90 days | Limits exposure if keys are leaked |
+| Use IAM Access Analyzer | Identifies resources shared outside your account |
+
+## Key IAM Terms
+
+| Term | Definition |
+|---|---|
+| **ARN** | Amazon Resource Name — unique identifier for any AWS resource |
+| **Principal** | The entity making the request (user, role, service, account) |
+| **Action** | The API operation being requested (e.g., `s3:GetObject`) |
+| **Resource** | The specific AWS resource the action applies to |
+| **Condition** | Optional constraints (IP address, MFA status, time of day) |
+
+## Summary
+
+- **Users** = permanent identities with long-term credentials. For humans.
+- **Groups** = collections of users, for easier policy management
+- **Roles** = temporary identities assumed by services, cross-account users, or federated users
+- **Policies** = JSON documents defining Allow/Deny on actions and resources
+- **Evaluation order**: Explicit Deny → Allow → Implicit Deny
+- Always prefer roles over access keys for applications running on AWS

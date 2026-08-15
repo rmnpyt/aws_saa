@@ -1,0 +1,362 @@
+[
+  {
+    "id": "res001",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company wants to deploy a web application across multiple Availability Zones to ensure high availability. They want an automatic failover if one AZ becomes unavailable. Which combination of services should be used?",
+    "options": [
+      {"id": "A", "text": "EC2 instances with Elastic IPs in each AZ, with manual failover procedures"},
+      {"id": "B", "text": "Application Load Balancer with an Auto Scaling Group deploying instances across multiple AZs"},
+      {"id": "C", "text": "A single EC2 instance with EBS volume snapshots for backup"},
+      {"id": "D", "text": "EC2 Spot Instances in multiple AZs with no load balancer"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "An ALB automatically distributes traffic across healthy instances in multiple AZs. If an AZ fails, the ALB routes traffic to instances in remaining AZs. The Auto Scaling Group ensures the desired number of instances are maintained.",
+      "perOption": {
+        "A": "Elastic IPs require manual failover and don't provide automatic traffic distribution across AZs.",
+        "B": "CORRECT. ALB + ASG is the standard HA web tier pattern. The ALB performs health checks and stops sending traffic to unhealthy instances. ASG replaces failed instances automatically.",
+        "C": "A single EC2 instance is a single point of failure. Snapshots enable recovery but with significant downtime.",
+        "D": "Spot instances without a load balancer provide no automatic failover and Spot can be interrupted by AWS."
+      }
+    }
+  },
+  {
+    "id": "res002",
+    "domain": 2,
+    "taskStatement": "2.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A financial services company has an RDS MySQL database in us-east-1. Their disaster recovery plan requires recovering to another region with a maximum of 15 minutes of data loss (RPO) and restoration time within 60 minutes (RTO). Which solution meets these requirements?",
+    "options": [
+      {"id": "A", "text": "Enable RDS Multi-AZ deployment"},
+      {"id": "B", "text": "Take daily snapshots of the RDS instance and copy them to us-west-2"},
+      {"id": "C", "text": "Create a read replica in us-west-2 and promote it if the primary region fails"},
+      {"id": "D", "text": "Use AWS Backup to create weekly backups stored in us-west-2"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "A cross-region read replica uses asynchronous replication, typically with lag of seconds to minutes (satisfying the 15-minute RPO). Manual promotion to primary can be completed within the 60-minute RTO window.",
+      "perOption": {
+        "A": "Multi-AZ provides HA within a region but doesn't help with cross-region disaster recovery.",
+        "B": "Daily snapshots mean up to 24 hours of data loss (RPO = 24 hours), far exceeding the 15-minute RPO requirement.",
+        "C": "CORRECT. A read replica is continuously replicated from the primary (RPO: minutes). Promotion takes minutes to an hour (RTO: < 60 min). This meets both requirements.",
+        "D": "Weekly backups mean up to 7 days of data loss. This doesn't meet the RPO requirement."
+      }
+    }
+  },
+  {
+    "id": "res003",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's application processes orders received from an e-commerce website. During peak sales events, the order rate spikes 10x for 2-3 hours. The processing system can't scale quickly enough to handle the spike. Which architecture pattern best solves this?",
+    "options": [
+      {"id": "A", "text": "Increase the EC2 instance size to handle peak load at all times"},
+      {"id": "B", "text": "Place an SQS queue between the e-commerce website and the order processing system"},
+      {"id": "C", "text": "Use Aurora Auto Scaling to add read replicas during peak times"},
+      {"id": "D", "text": "Deploy multiple EC2 instances in different regions for redundancy"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "An SQS queue acts as a buffer. During the spike, orders accumulate in the queue. The processing system reads from the queue at whatever rate it can handle. No orders are lost, and the system doesn't need to scale as fast as the incoming rate.",
+      "perOption": {
+        "A": "Running peak-capacity instances all the time is extremely wasteful and expensive. The spike only lasts 2-3 hours.",
+        "B": "CORRECT. SQS decouples the producer (website) from the consumer (order processor). Orders are stored in the queue during the spike and processed at a manageable rate afterward. This is the classic decoupling pattern.",
+        "C": "Read replicas help with read scaling for databases but don't solve the order processing throughput problem.",
+        "D": "Multiple regions provide DR, not spike handling capacity. The processing bottleneck would still exist."
+      }
+    }
+  },
+  {
+    "id": "res004",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company uses Route 53 for DNS. Their application is deployed in us-east-1 and eu-west-1. They want traffic to be routed to the region that provides the lowest latency for each user. Which Route 53 routing policy should be used?",
+    "options": [
+      {"id": "A", "text": "Failover routing"},
+      {"id": "B", "text": "Geolocation routing"},
+      {"id": "C", "text": "Latency-based routing"},
+      {"id": "D", "text": "Weighted routing"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "Latency-based routing routes users to the AWS region that provides the lowest network latency for their location. Route 53 measures latency to each configured region and routes accordingly.",
+      "perOption": {
+        "A": "Failover routing routes to a secondary only when the primary fails. It doesn't optimize for latency.",
+        "B": "Geolocation routing routes based on the user's geographic location (country/continent), not actual network latency. A user in Germany might have lower latency to US servers.",
+        "C": "CORRECT. Latency-based routing uses AWS's latency database to determine which endpoint is closest (lowest latency) for each user's request.",
+        "D": "Weighted routing splits traffic by percentage (e.g., 50/50) regardless of user location."
+      }
+    }
+  },
+  {
+    "id": "res005",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company needs an RDS database that automatically fails over to a standby instance in another Availability Zone if the primary instance fails, with no manual intervention required. Which RDS feature provides this?",
+    "options": [
+      {"id": "A", "text": "RDS Read Replicas with automatic promotion enabled"},
+      {"id": "B", "text": "RDS Multi-AZ deployment"},
+      {"id": "C", "text": "RDS enhanced monitoring"},
+      {"id": "D", "text": "RDS automated backups with point-in-time recovery"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "RDS Multi-AZ maintains a synchronous standby replica in a different AZ. If the primary fails, RDS automatically updates the DNS endpoint to point to the standby, completing failover in 1-2 minutes with no manual action.",
+      "perOption": {
+        "A": "Read Replicas do NOT automatically promote on primary failure. Promotion is a manual operation. Read replicas are for read scaling, not automatic failover.",
+        "B": "CORRECT. Multi-AZ is specifically designed for automatic failover. The standby is synchronously replicated and promotion happens automatically.",
+        "C": "Enhanced monitoring provides detailed OS metrics but has nothing to do with failover.",
+        "D": "Automated backups enable PITR but require you to restore to a new instance — this takes time and manual action, not automatic failover."
+      }
+    }
+  },
+  {
+    "id": "res006",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company is deploying a containerized application and wants to run Docker containers without managing EC2 instances or clusters. The containers should scale automatically. Which solution meets these requirements?",
+    "options": [
+      {"id": "A", "text": "Amazon ECS with EC2 launch type"},
+      {"id": "B", "text": "Amazon ECS with Fargate launch type"},
+      {"id": "C", "text": "Amazon EC2 with Docker installed manually"},
+      {"id": "D", "text": "Amazon EKS with self-managed node groups"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "ECS with Fargate is serverless containers — AWS manages all underlying servers. You specify CPU and memory for each task, and Fargate provisions, scales, and maintains the infrastructure automatically.",
+      "perOption": {
+        "A": "ECS with EC2 launch type requires you to provision and manage EC2 instances for the cluster. The user would need to manage servers.",
+        "B": "CORRECT. Fargate eliminates server management entirely. AWS handles the underlying infrastructure, and ECS service auto-scaling handles task count scaling.",
+        "C": "Self-managing Docker on EC2 means managing patching, scaling, and cluster management manually.",
+        "D": "EKS with self-managed node groups requires managing EC2 nodes. This doesn't meet the 'no managing EC2 instances' requirement."
+      }
+    }
+  },
+  {
+    "id": "res007",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "An Auto Scaling Group has a maximum capacity of 10 instances. Currently 8 instances are running. A sudden traffic spike requires 15 instances to handle load. What happens?",
+    "options": [
+      {"id": "A", "text": "The ASG automatically increases its maximum capacity to 15"},
+      {"id": "B", "text": "The ASG scales to 10 instances (the configured maximum) and excess requests may be rejected or queued"},
+      {"id": "C", "text": "AWS overrides the maximum and launches 15 instances to prevent service degradation"},
+      {"id": "D", "text": "The ASG launches 15 instances and charges a premium for exceeding the configured limit"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "The Auto Scaling Group respects the maximum capacity configuration and will not exceed it. It will scale to 10 instances (the maximum), and if that's insufficient for the traffic spike, excess requests will be throttled or rejected.",
+      "perOption": {
+        "A": "The ASG does not automatically change its own maximum capacity. The maximum must be changed manually or via a scheduled action.",
+        "B": "CORRECT. The ASG is bounded by the maximum capacity. It scales to 10 and no further. Planning your maximum capacity correctly is important.",
+        "C": "AWS does not override customer-configured limits. The maximum is enforced.",
+        "D": "AWS does not automatically exceed configured limits and charge a premium. Service limits must be explicitly increased."
+      }
+    }
+  },
+  {
+    "id": "res008",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company wants to implement a fan-out pattern where a single event (new user registration) triggers multiple downstream services: sending a welcome email, creating a user profile in DynamoDB, and publishing to an analytics system. Which combination of services should be used?",
+    "options": [
+      {"id": "A", "text": "SQS queue → three separate consumers polling the queue"},
+      {"id": "B", "text": "SNS topic → three SQS queues (one per service)"},
+      {"id": "C", "text": "EventBridge event bus → three separate EventBridge rules"},
+      {"id": "D", "text": "SQS FIFO queue with message groups for each service"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "SNS fan-out to SQS queues delivers a copy of the message to each SQS queue. Each downstream service has its own queue and processes independently. The SQS queues add durability (messages persist if a service is down).",
+      "perOption": {
+        "A": "With a single SQS queue, only one consumer reads each message. You cannot fan-out to multiple services from a single standard SQS queue.",
+        "B": "CORRECT. SNS topics deliver a copy of each message to all subscribers. Three SQS queues as subscribers means each gets a copy. Each service processes from its own queue at its own pace, with retry and DLQ support.",
+        "C": "EventBridge also works for fan-out, but the classic SNS+SQS pattern is more traditional for this use case. EventBridge is better for complex event routing from multiple sources.",
+        "D": "A FIFO queue still only delivers each message to one consumer. Message groups ensure ordering within a group, not fan-out."
+      }
+    }
+  },
+  {
+    "id": "res009",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company has a Lambda function processing messages from an SQS queue. Occasionally, malformed messages cause the Lambda to fail repeatedly. These messages are blocking the queue. What should be configured to handle this?",
+    "options": [
+      {"id": "A", "text": "Increase the Lambda function timeout"},
+      {"id": "B", "text": "Configure a Dead Letter Queue (DLQ) on the SQS queue with a maxReceiveCount"},
+      {"id": "C", "text": "Enable SQS long polling to reduce processing frequency"},
+      {"id": "D", "text": "Configure the SQS visibility timeout to be much longer than the Lambda timeout"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "A Dead Letter Queue receives messages that have failed processing a specified number of times (maxReceiveCount). Malformed messages are moved to the DLQ for investigation without blocking the main queue.",
+      "perOption": {
+        "A": "Increasing timeout extends how long Lambda tries to process the message, but malformed messages will still fail after the timeout. This doesn't solve the blocking problem.",
+        "B": "CORRECT. Configure a DLQ and set maxReceiveCount (e.g., 3). After 3 failed attempts, the message is moved to the DLQ. The main queue continues processing valid messages.",
+        "C": "Long polling reduces empty receive calls (cost optimization) but doesn't help with malformed message handling.",
+        "D": "Visibility timeout controls how long a message is hidden while being processed. Setting it longer doesn't handle the case where a message always fails."
+      }
+    }
+  },
+  {
+    "id": "res010",
+    "domain": 2,
+    "taskStatement": "2.1",
+    "difficulty": "hard",
+    "type": "multiple-choice",
+    "question": "A company's RTO requirement is under 1 minute and RPO is near zero for a critical trading application that runs in us-east-1. They need the application to continue running if the entire us-east-1 region becomes unavailable. Which DR strategy meets these requirements?",
+    "options": [
+      {"id": "A", "text": "Pilot light strategy with a single small EC2 instance in us-west-2"},
+      {"id": "B", "text": "Backup and restore strategy with cross-region S3 replication"},
+      {"id": "C", "text": "Warm standby with reduced capacity in us-west-2"},
+      {"id": "D", "text": "Multi-site active-active with Route 53 latency routing across both regions"}
+    ],
+    "correctAnswers": ["D"],
+    "explanation": {
+      "correct": "With sub-1-minute RTO and near-zero RPO, only an active-active multi-region deployment works. Both regions serve traffic simultaneously; when one fails, Route 53 stops routing to it within seconds. No failover procedure is needed.",
+      "perOption": {
+        "A": "Pilot light involves starting up infrastructure after failure. Even a fast pilot light would take several minutes for RTO, and data replication lag means some data loss.",
+        "B": "Backup and restore has RTO of hours and RPO of however frequently backups are taken. This doesn't meet the requirements.",
+        "C": "Warm standby can have RTO of minutes but still requires promoting the standby and scaling up. Sub-1-minute RTO is very difficult to achieve.",
+        "D": "CORRECT. Active-active means both regions are already serving traffic. Route 53 health checks detect failure and stops routing to the failed region within 30-60 seconds. RPO is essentially zero because data is being written to both regions."
+      }
+    }
+  },
+  {
+    "id": "res011",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "An application needs to process tasks in a specific order. Multiple workers process tasks from an SQS queue. Which SQS queue type ensures message ordering?",
+    "options": [
+      {"id": "A", "text": "Standard SQS queue with sorting logic in the application"},
+      {"id": "B", "text": "SQS FIFO queue"},
+      {"id": "C", "text": "Standard SQS queue with message priorities"},
+      {"id": "D", "text": "Amazon Kinesis Data Streams with ordered records"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "SQS FIFO (First-In-First-Out) queues guarantee that messages are processed in the exact order they are sent and processed exactly once.",
+      "perOption": {
+        "A": "Standard SQS provides best-effort ordering, not guaranteed. Implementing sorting in the application is complex and unreliable.",
+        "B": "CORRECT. FIFO queues guarantee message ordering (FIFO) and exactly-once processing. Throughput is limited to 3,000 messages/second with batching.",
+        "C": "SQS doesn't have a native message priority feature. Standard queue is best-effort ordering.",
+        "D": "Kinesis does maintain ordering within a shard, but it's a streaming service, not a queue. SQS FIFO is the right answer for ordered task queuing."
+      }
+    }
+  },
+  {
+    "id": "res012",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "easy",
+    "type": "multiple-choice",
+    "question": "A company runs an application on EC2 instances behind an Application Load Balancer. They want to ensure new EC2 instances added by Auto Scaling have time to complete their startup scripts before receiving traffic. Which feature should be configured?",
+    "options": [
+      {"id": "A", "text": "Increase the health check interval on the ALB"},
+      {"id": "B", "text": "Configure an EC2 Auto Scaling instance warm-up period"},
+      {"id": "C", "text": "Enable connection draining on the ALB"},
+      {"id": "D", "text": "Add a lifecycle hook to the Auto Scaling Group"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "The warm-up period tells the ASG not to count metric contributions from newly launched instances until they've had time to initialize. This prevents the ASG from scaling in immediately after scaling out because the new instances haven't started contributing to metrics yet. Combined with ALB health checks, it also ensures instances are ready before receiving traffic.",
+      "perOption": {
+        "A": "The health check interval on the ALB controls how often ALB checks if instances are healthy. This doesn't delay traffic to new instances.",
+        "B": "CORRECT. The warm-up period gives new instances time to initialize. During this period, their metrics aren't counted in the scaling calculations, and the ALB won't send traffic until the health check passes.",
+        "C": "Connection draining (deregistration delay) keeps existing connections alive when an instance is deregistered. It's for graceful shutdown, not startup.",
+        "D": "Lifecycle hooks can pause the instance at launch for custom actions but are more complex. The warm-up period is the simpler solution for this scenario."
+      }
+    }
+  },
+  {
+    "id": "res013",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company wants to build a multi-step workflow that: validates an order, charges the customer, creates a shipment, and sends a confirmation email. If any step fails, previous steps should be automatically compensated. Which service is best suited for this?",
+    "options": [
+      {"id": "A", "text": "Amazon SQS with multiple queues chained together"},
+      {"id": "B", "text": "AWS Step Functions with state machine and error handling"},
+      {"id": "C", "text": "Amazon EventBridge with rules for each step"},
+      {"id": "D", "text": "AWS Lambda with DynamoDB for state tracking"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Step Functions provides a visual state machine with built-in retry logic, error handling (Catch), and compensation workflows. It maintains state and can coordinate multiple Lambda functions for each step.",
+      "perOption": {
+        "A": "SQS chaining would work for sequential processing but doesn't provide built-in state management, compensation logic, or the ability to handle failures across steps elegantly.",
+        "B": "CORRECT. Step Functions is designed exactly for this use case — multi-step workflows with error handling. Retry and Catch states handle failures. The visual workflow makes it easy to manage compensation logic.",
+        "C": "EventBridge handles event routing but doesn't maintain workflow state or provide built-in compensation patterns.",
+        "D": "Lambda + DynamoDB for state tracking would work but requires significant custom code. Step Functions provides all of this out of the box."
+      }
+    }
+  },
+  {
+    "id": "res014",
+    "domain": 2,
+    "taskStatement": "2.2",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company needs to process streaming clickstream data from their website in real-time. Multiple analytics applications need to read the same stream independently and process it at different rates. Which service is most appropriate?",
+    "options": [
+      {"id": "A", "text": "Amazon SQS Standard queue"},
+      {"id": "B", "text": "Amazon SNS"},
+      {"id": "C", "text": "Amazon Kinesis Data Streams"},
+      {"id": "D", "text": "Amazon Kinesis Data Firehose"}
+    ],
+    "correctAnswers": ["C"],
+    "explanation": {
+      "correct": "Kinesis Data Streams allows multiple consumer applications to read the same stream data independently. Each consumer maintains its own position in the stream. Data is retained for 24 hours (up to 7 days), allowing consumers to process at different rates.",
+      "perOption": {
+        "A": "SQS delivers each message to only one consumer. Multiple applications can't independently read the same messages from SQS.",
+        "B": "SNS pushes messages to subscribers but doesn't retain data. If an analytics app falls behind, it can't go back and reprocess.",
+        "C": "CORRECT. Kinesis Streams supports multiple consumers, each maintaining their own shard iterator position. Data is retained so slow consumers can catch up.",
+        "D": "Kinesis Firehose delivers data to a destination (S3, Redshift) — it doesn't support multiple application consumers reading the stream directly."
+      }
+    }
+  },
+  {
+    "id": "res015",
+    "domain": 2,
+    "taskStatement": "2.1",
+    "difficulty": "medium",
+    "type": "multiple-choice",
+    "question": "A company's website serves users globally. They want to ensure that if their primary region (us-east-1) fails, traffic is automatically redirected to their DR region (eu-west-1). Which Route 53 configuration achieves this?",
+    "options": [
+      {"id": "A", "text": "Configure Weighted routing with 100% to us-east-1 and 0% to eu-west-1"},
+      {"id": "B", "text": "Configure Failover routing with us-east-1 as primary and eu-west-1 as secondary with health checks"},
+      {"id": "C", "text": "Configure Latency routing between both regions"},
+      {"id": "D", "text": "Configure Geolocation routing to send European users to eu-west-1 and others to us-east-1"}
+    ],
+    "correctAnswers": ["B"],
+    "explanation": {
+      "correct": "Route 53 Failover routing with health checks monitors the primary endpoint. When the health check fails (primary region down), Route 53 automatically updates DNS responses to point to the secondary (DR) endpoint.",
+      "perOption": {
+        "A": "Weighted routing with 0% to eu-west-1 means no traffic goes there. Route 53 weighted routing doesn't automatically shift to 100% on failure.",
+        "B": "CORRECT. Failover routing is specifically designed for primary/secondary DR scenarios. When the primary's health check fails, Route 53 returns the secondary's IP in DNS responses.",
+        "C": "Latency routing optimizes for performance but doesn't provide automatic failover when a region fails.",
+        "D": "Geolocation routing sends traffic by user location. If us-east-1 goes down, US users have no endpoint to route to."
+      }
+    }
+  }
+]

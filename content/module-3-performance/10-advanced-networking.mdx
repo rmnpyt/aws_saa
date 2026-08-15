@@ -1,0 +1,125 @@
+---
+title: "Advanced Networking for Performance"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "advanced-networking"
+order: 10
+domain: 3
+taskStatements: ["3.2"]
+estimatedMinutes: 30
+difficulty: "advanced"
+tags: ["enhanced-networking", "efa", "vpc-flow-logs", "network-performance", "ipv6"]
+services: ["Amazon VPC", "Amazon EC2"]
+---
+
+## Network Performance in EC2
+
+EC2 instance network performance is determined by:
+1. **Instance type**: Larger instances have more network bandwidth
+2. **Enhanced Networking**: SR-IOV for higher packet rates, lower latency
+3. **Placement groups**: Cluster placement for inter-instance performance
+
+## Enhanced Networking Options
+
+### ENA (Elastic Network Adapter)
+The standard enhanced networking driver for modern EC2 instances:
+- Up to **100 Gbps** network bandwidth
+- Higher packet-per-second performance
+- Lower latency, lower CPU utilization than legacy virtio
+- Enabled by default on all modern instance families (m5, c5, r5, etc.)
+
+### EFA (Elastic Fabric Adapter)
+**EFA** is a high-performance network interface for HPC workloads:
+- Bypass the OS kernel for ultra-low-latency inter-node communication
+- Enables **MPI (Message Passing Interface)** for tightly coupled HPC jobs
+- Same bandwidth as ENA but OS-bypass path for latency
+- Use with Cluster Placement Groups for maximum benefit
+
+**When to use EFA**: Multi-node HPC simulations, ML training with distributed frameworks (Horovod), weather modeling, financial Monte Carlo simulations.
+
+## VPC Bandwidth Considerations
+
+### Instance Bandwidth Limits
+
+Network bandwidth is tied to the instance type:
+- `t3.micro`: Up to 5 Gbps (burstable)
+- `m5.xlarge`: Up to 10 Gbps
+- `m5.24xlarge`: 25 Gbps
+- `c5n.18xlarge`: 100 Gbps (highest single-instance bandwidth)
+
+**Bandwidth asymmetry**: Most instances have asymmetric bandwidth — higher intra-region bandwidth than internet-facing bandwidth.
+
+### Data Transfer Costs
+
+**Free data transfer:**
+- Inbound data transfer to AWS: Free
+- Within the same AZ: Free (between instances)
+- Between CloudFront and S3 in the same region: Free
+
+**Charged data transfer:**
+- Outbound to internet: From $0.09/GB (depending on volume)
+- Between AZs in the same region: $0.01/GB each direction
+- Between regions: From $0.02/GB
+
+**Cost optimization**: Keep traffic within the same AZ where possible. Use VPC endpoints (Gateway Endpoint for S3/DynamoDB) to avoid NAT Gateway data charges.
+
+## Jumbo Frames
+
+**Jumbo frames** (MTU 9001 bytes) vs. standard frames (MTU 1500 bytes):
+- Within a VPC: Jumbo frames supported (9001 byte MTU)
+- Over VPN: Limited to 1500 byte MTU
+- Over Direct Connect: 9001 byte MTU supported
+
+Jumbo frames reduce overhead for large data transfers between EC2 instances.
+
+## IPv6 in VPC
+
+**IPv6** is supported in VPCs:
+- Both IPv4 and IPv6 can coexist (dual-stack)
+- IPv6 addresses are globally unique (no private ranges — all publicly routable)
+- **Egress-Only Internet Gateway**: Like NAT for IPv6 — allows outbound IPv6 traffic but blocks inbound
+
+**IPv6 vs. IPv4 in AWS:**
+- IPv6 addresses are publicly routable — no need for NAT Gateway
+- But you still need to control access with security groups and NACLs
+
+## VPC Traffic Mirroring
+
+**Traffic Mirroring** captures and inspects network traffic at the ENI level:
+- Mirror network traffic to a monitoring/security appliance
+- Deep packet inspection, network forensics, threat analysis
+- Works without modifying the application
+
+**Use case**: Security operations team wants to inspect actual packet payloads (not just flow metadata) from a suspected compromised instance.
+
+## AWS Network Firewall
+
+**AWS Network Firewall** is a managed stateful firewall for VPCs:
+- Layer 3-7 inspection (IPS/IDS capabilities)
+- Suricata-compatible rules
+- Deploy in a dedicated firewall subnet
+- All traffic routes through the firewall before reaching your application
+
+Complements Security Groups (stateful, L4) and NACLs (stateless, L3/L4) with L7 capability.
+
+**Architecture:**
+```
+Internet
+    ↓
+Internet Gateway
+    ↓
+Firewall Subnet (AWS Network Firewall)
+    ↓
+Public Subnet (ALB)
+    ↓
+Private Subnet (Application)
+```
+
+## Summary
+
+- **ENA**: Enhanced networking for modern instances. Up to 100 Gbps. Default.
+- **EFA**: OS-bypass for HPC/MPI workloads. Ultra-low latency inter-node communication.
+- **Cluster Placement Group + EFA**: Best for tightly coupled HPC.
+- **Data transfer costs**: Inbound free, outbound and cross-AZ charged. Gateway Endpoints bypass NAT Gateway charges.
+- **Network Firewall**: Managed stateful IPS/IDS for VPCs. L7 inspection.
+- **Traffic Mirroring**: Deep packet inspection without modifying applications.

@@ -1,0 +1,84 @@
+---
+title: "What is Cloud Computing?"
+module: "module-0-foundations"
+moduleTitle: "Foundations & Prerequisites"
+slug: "cloud-computing"
+order: 1
+domain: 0
+taskStatements: []
+estimatedMinutes: 25
+difficulty: "beginner"
+tags: ["cloud", "fundamentals", "iaas", "paas", "saas"]
+services: []
+---
+
+## What is Cloud Computing?
+
+Cloud computing is the **on-demand delivery of IT resources** (compute, storage, databases, networking, software) over the internet with pay-as-you-go pricing. Instead of buying and maintaining physical servers in a data center, you rent what you need from a cloud provider like AWS.
+
+Before cloud computing, organizations had to:
+- Purchase hardware months in advance (guessing future capacity needs)
+- Pay for 100% of capacity even when usage was low
+- Manage physical security, cooling, power, and hardware failures
+- Wait weeks or months to provision new servers
+
+Cloud computing eliminates all of these problems.
+
+## Service Models
+
+<ComparisonTable
+  headers={["Model", "You Manage", "Provider Manages", "Example"]}
+  rows={[
+    ["IaaS", "OS, runtime, apps, data", "Network, storage, servers, virtualization", "Amazon EC2"],
+    ["PaaS", "Applications, data", "Everything below the app layer", "AWS Elastic Beanstalk"],
+    ["SaaS", "Just your data/configuration", "Everything", "Gmail, Salesforce"],
+  ]}
+/>
+
+For the SAA-C03 exam, **IaaS** (EC2, S3, VPC) is where most design decisions live. PaaS services like Elastic Beanstalk exist but are less tested.
+
+## Deployment Models
+
+| Model | Description | When to use |
+|---|---|---|
+| **Public Cloud** | AWS-owned infrastructure, shared tenancy | Most workloads |
+| **Private Cloud** | On-premises, owned by the organization | Strict regulatory requirements |
+| **Hybrid Cloud** | Mix of on-premises + cloud | Gradual migrations, compliance |
+| **Multi-Cloud** | Multiple cloud providers | Vendor risk diversification |
+
+## Six Benefits of Cloud Computing (AWS Framework)
+
+AWS frames the value proposition in six advantages — these appear in exam questions:
+
+1. **Trade capital expense for variable expense** — Pay only for what you use
+2. **Benefit from massive economies of scale** — AWS aggregates demand from millions of customers
+3. **Stop guessing capacity** — Scale up or down instantly based on actual demand
+4. **Increase speed and agility** — Provision resources in minutes, not months
+5. **Stop spending on data centers** — Focus on your differentiated work, not undifferentiated heavy lifting
+6. **Go global in minutes** — Deploy in multiple regions worldwide with a few clicks
+
+<ExamTip>
+Exam questions often describe a scenario and ask which cloud benefit it illustrates. Common traps: "trade CapEx for OpEx" (benefit 1) vs. "economies of scale" (benefit 2). Match the scenario to the right benefit.
+</ExamTip>
+
+## CapEx vs. OpEx
+
+| | Capital Expenditure (CapEx) | Operational Expenditure (OpEx) |
+|---|---|---|
+| **Definition** | Upfront investment in assets | Pay for what you use, expensed immediately |
+| **Traditional IT** | Buy servers, data center | — |
+| **Cloud** | — | Pay-per-use pricing |
+| **Accounting** | Depreciated over years | Expensed in the current period |
+
+Cloud computing converts IT spending from CapEx to OpEx, which improves financial flexibility and reduces risk.
+
+## AWS Global Infrastructure Preview
+
+AWS has a global footprint across **33+ Regions** and **105+ Availability Zones** (as of 2026). The next lesson covers this in detail — the key concept here is that this scale is why AWS can offer lower prices (economy of scale) than any individual organization could achieve.
+
+## Summary
+
+- Cloud = on-demand IT resources over the internet, pay-as-you-go
+- IaaS (EC2) → PaaS (Beanstalk) → SaaS: decreasing control, decreasing management burden
+- Six key benefits: variable cost, scale, capacity, speed, no data center, global reach
+- Public vs. private vs. hybrid cloud deployment models

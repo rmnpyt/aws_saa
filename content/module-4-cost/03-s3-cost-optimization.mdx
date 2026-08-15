@@ -1,0 +1,127 @@
+---
+title: "S3 Cost Optimization"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "s3-cost-optimization"
+order: 3
+domain: 4
+taskStatements: ["4.2"]
+estimatedMinutes: 30
+difficulty: "intermediate"
+tags: ["s3", "storage-classes", "intelligent-tiering", "lifecycle", "cost"]
+services: ["Amazon S3"]
+---
+
+## S3 Cost Components
+
+S3 pricing includes:
+- **Storage**: Per GB per month (varies by storage class)
+- **Requests**: GET, PUT, COPY, POST, LIST operations
+- **Data retrieval**: Fees for Glacier retrievals
+- **Data transfer**: Out to internet (inbound free), minimal for cross-region replication
+- **Management features**: Intelligent-Tiering monitoring, replication, lifecycle rules
+
+## Storage Class Cost vs. Retrieval Speed
+
+| Storage Class | Storage Cost | Retrieval Cost | Retrieval Speed |
+|---|---|---|---|
+| S3 Standard | $$$ | Free | Immediate |
+| S3 Standard-IA | $$ | Per GB | Immediate |
+| S3 One Zone-IA | $ | Per GB | Immediate |
+| S3 Glacier Instant | $ | Per GB | Immediate (ms) |
+| S3 Glacier Flexible | Cents | Per GB + request | Minutes to hours |
+| S3 Glacier Deep Archive | Cents | Higher per GB | 12 hours |
+| S3 Intelligent-Tiering | $$ (standard) → cheaper tiers automatically | Varies | Depends on tier |
+
+## S3 Intelligent-Tiering
+
+**Intelligent-Tiering** automatically moves objects between access tiers based on usage:
+
+| Tier | Access pattern | Cost |
+|---|---|---|
+| Frequent Access | Accessed recently | Same as Standard |
+| Infrequent Access | Not accessed 30 days | 40% cheaper than Standard |
+| Archive Instant Access | Not accessed 90 days | 68% cheaper than Standard |
+| Archive Access (optional) | Not accessed 90+ days | 71% cheaper |
+| Deep Archive Access (optional) | Not accessed 180+ days | 95% cheaper |
+
+**Monitoring fee**: $0.0025 per 1,000 objects monitored/month. Objects < 128 KB are not tiered (stay in frequent access).
+
+**Best for**: Data with unknown or changing access patterns. Larger objects where you can't predict access frequency.
+
+<ExamTip>
+Use **Intelligent-Tiering** when you don't know the access pattern in advance. Use **manual lifecycle rules** when you know the pattern (e.g., "logs are accessed daily for 30 days, then archived").
+</ExamTip>
+
+## S3 Lifecycle Rules
+
+When you know your access pattern, use **lifecycle rules** to move objects proactively:
+
+**Example: Log archive lifecycle**
+```
+Day 0-30: S3 Standard (frequently accessed)
+Day 30-90: S3 Standard-IA (30 days no access)
+Day 90-365: S3 Glacier Instant Retrieval (still need fast access)
+After 365 days: S3 Glacier Deep Archive (compliance archive)
+After 7 years: Delete
+```
+
+**Minimum storage durations** (early deletion fees apply):
+- Standard-IA: 30 days
+- One Zone-IA: 30 days
+- Glacier Instant: 90 days
+- Glacier Flexible: 90 days
+- Deep Archive: 180 days
+
+## Reducing S3 Costs in Practice
+
+### 1. Use the Right Storage Class
+Audit your buckets — many organizations have data sitting in Standard that hasn't been accessed in months.
+
+### 2. Enable S3 Inventory + Lifecycle Rules
+- S3 Inventory generates a daily/weekly CSV report of all objects with metadata
+- Use the report to identify objects that haven't been accessed → create lifecycle rules
+
+### 3. Clean Up Incomplete Multipart Uploads
+Incomplete uploads accumulate charges. Use a lifecycle rule:
+```
+Abort incomplete multipart uploads after 7 days
+```
+
+### 4. Manage Object Versions
+With versioning enabled, old versions accumulate:
+- Create lifecycle rule to move old versions to Glacier after 30 days
+- Delete old versions after 365 days
+
+### 5. Use S3 Select to Reduce Data Transfer
+Download only the rows/columns you need. Reduces both data transfer costs and Lambda/Athena costs.
+
+### 6. Use Gateway Endpoint to Avoid NAT Costs
+Access S3 from private subnets via a **Gateway Endpoint** — no NAT Gateway data processing charges.
+
+## S3 One Zone-IA
+
+**One Zone-IA** stores data in only one AZ (vs. Standard's 3):
+- 20% cheaper than Standard-IA
+- **Risk**: Data lost if the AZ is destroyed
+- **Use for**: Easily reproducible data (thumbnail images, Athena query results, secondary backup copies)
+- **Do NOT use for**: Primary copies of irreplaceable data
+
+## Glacier Retrieval Options
+
+| Retrieval type | Time | Cost |
+|---|---|---|
+| Expedited | 1-5 minutes | Highest |
+| Standard | 3-5 hours | Medium |
+| Bulk | 5-12 hours | Lowest |
+
+For **Glacier Instant Retrieval**: No retrieval tiers — always millisecond access (same as Standard).
+
+## Summary
+
+- Use **Intelligent-Tiering** for uncertain access patterns (auto-moves between tiers)
+- Use **lifecycle rules** when access pattern is known
+- **Standard-IA**: Minimum 30 days, retrieval fee. For infrequent but fast access needed.
+- **Glacier Deep Archive**: Cheapest storage. 12-hour retrieval. Long-term compliance archives.
+- Always clean up incomplete multipart uploads and old object versions
+- Use Gateway Endpoint for S3 access from private subnets — avoids NAT Gateway charges

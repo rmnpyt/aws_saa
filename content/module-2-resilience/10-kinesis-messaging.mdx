@@ -1,0 +1,127 @@
+---
+title: "Streaming & Advanced Messaging"
+module: "module-2-resilience"
+moduleTitle: "Domain 2: Design Resilient Architectures"
+slug: "kinesis-messaging"
+order: 10
+domain: 2
+taskStatements: ["2.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["kinesis", "amazon-mq", "data-streams", "firehose", "streaming"]
+services: ["Amazon Kinesis", "Amazon MQ"]
+---
+
+## When to Use Kinesis vs. SQS
+
+SQS is a queue — one consumer consumes each message and it's deleted. **Kinesis** is a data stream — multiple consumers can read the same data, and data is retained for a period.
+
+| Aspect | SQS | Kinesis Data Streams |
+|---|---|---|
+| Consumer model | Competing consumers (one reads the message) | Multiple consumer groups read independently |
+| Data retention | Up to 14 days | 24 hours (default), up to 7 days (extendable) |
+| Ordering | FIFO queue only | Per shard ordering |
+| Replay | No (consumed messages are deleted) | Yes (seek back to any point in retention window) |
+| Scaling unit | Automatic | Shards (1 MB/s write, 2 MB/s read per shard) |
+| Use case | Task queuing, decoupling | Real-time analytics, multiple consumers, replay |
+
+## Amazon Kinesis Data Streams
+
+**Kinesis Data Streams** is a real-time data streaming service for collecting and processing large streams of data.
+
+**Architecture:**
+- **Stream**: A logical container for data records
+- **Shard**: The unit of capacity. Each shard: 1 MB/s write, 2 MB/s read, 1,000 records/s
+- **Data record**: Up to 1 MB. Contains sequence number, partition key, and data blob.
+- **Producers**: Apps that write data (Kinesis Agent, Kinesis Producer Library, AWS SDK)
+- **Consumers**: Apps that read data (Lambda, Kinesis Consumer Library, Kinesis Data Analytics)
+
+**Capacity modes:**
+- **Provisioned mode**: You specify the number of shards. Manual scaling. $0.015/shard-hour.
+- **On-demand mode**: Kinesis auto-scales based on traffic. Pay per GB in/out.
+
+**Retention**: Default 24 hours. Extended to 7 days ($). Long-term to 365 days ($$).
+
+**Common consumers:**
+- Lambda (processes records in real-time)
+- Kinesis Data Analytics (SQL queries on stream in real-time)
+- Kinesis Data Firehose (delivers stream to S3/Redshift/Elasticsearch)
+
+## Amazon Kinesis Data Firehose
+
+**Firehose** is the simplest way to **load streaming data into data stores**. It is NOT a real-time stream — it buffers data and delivers in batches:
+
+**Supported destinations:**
+- Amazon S3
+- Amazon Redshift (via S3)
+- Amazon OpenSearch Service
+- HTTP endpoints (custom)
+- Datadog, Splunk, MongoDB
+
+**No consumers to manage**: Unlike Kinesis Streams, Firehose manages everything — just configure the source and destination.
+
+**Transformation**: Optionally call a Lambda function to transform records before delivery.
+
+**Buffer settings**: Flush after N seconds OR N MB (whichever comes first). Minimum 60 seconds.
+
+<ExamTip>
+**Kinesis Data Streams**: Real-time, multiple consumers, replay capable. You manage shards and consumers.
+**Kinesis Data Firehose**: Near real-time (60 sec min delay), loads data to S3/Redshift/OpenSearch. Fully managed.
+</ExamTip>
+
+## Kinesis Data Analytics
+
+**Kinesis Data Analytics** lets you run SQL queries against streaming data in real-time:
+- Input from Kinesis Data Streams or Firehose
+- Write SQL to aggregate, filter, and transform data
+- Output to Streams, Firehose, or Lambda
+
+Example: Continuously compute the average order value per minute from an order stream.
+
+## Amazon MQ
+
+**Amazon MQ** is a managed message broker service for **Apache ActiveMQ and RabbitMQ**. It is designed for **migrating existing applications** that use standard messaging protocols.
+
+**When to use Amazon MQ:**
+- Your on-premises application uses JMS, AMQP, MQTT, STOMP, or OpenWire protocols
+- You're migrating an existing message broker to AWS without rewriting the application
+
+**When NOT to use Amazon MQ:**
+- New applications on AWS → use SQS (more scalable, simpler, serverless)
+- Need massive scale → SQS or Kinesis
+- Need pub/sub → SNS or EventBridge
+
+Amazon MQ runs on dedicated instances (not serverless) — you choose the instance type and pay per hour.
+
+## Choosing the Right Messaging Service
+
+```
+Need a work queue (one consumer per message)?
+→ SQS (standard or FIFO)
+
+Need pub/sub fan-out?
+→ SNS (or SNS + SQS for durable fan-out)
+
+Need real-time streaming with multiple consumers?
+→ Kinesis Data Streams
+
+Need to load streaming data into S3 or Redshift?
+→ Kinesis Data Firehose
+
+Need to run SQL on streaming data?
+→ Kinesis Data Analytics
+
+Migrating from ActiveMQ/RabbitMQ?
+→ Amazon MQ
+
+Need complex event routing from AWS services?
+→ EventBridge
+```
+
+## Summary
+
+- **Kinesis Streams**: Real-time, ordered by shard, multiple consumers can read the same data, replay.
+- **Kinesis Firehose**: Near real-time delivery to S3/Redshift/OpenSearch. No consumer management.
+- **Kinesis Analytics**: SQL queries on streaming data.
+- **Amazon MQ**: Managed ActiveMQ/RabbitMQ for migrating legacy applications.
+- **SQS** for decoupling + queuing. **Kinesis** for real-time streaming and analytics.

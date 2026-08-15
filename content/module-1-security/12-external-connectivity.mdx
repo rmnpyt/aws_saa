@@ -1,0 +1,119 @@
+---
+title: "External Connectivity: VPN & Direct Connect"
+module: "module-1-security"
+moduleTitle: "Domain 1: Design Secure Architectures"
+slug: "external-connectivity"
+order: 12
+domain: 1
+taskStatements: ["1.2"]
+estimatedMinutes: 40
+difficulty: "intermediate"
+tags: ["vpn", "direct-connect", "transit-gateway", "on-premises", "hybrid"]
+services: ["AWS Site-to-Site VPN", "AWS Direct Connect", "AWS Transit Gateway"]
+---
+
+## Hybrid Connectivity: On-Premises to AWS
+
+Organizations often need to connect their on-premises data centers to AWS VPCs. Two main options exist:
+
+| Feature | Site-to-Site VPN | Direct Connect |
+|---|---|---|
+| **Connection type** | Encrypted IPSec tunnel over internet | Dedicated private fiber link |
+| **Setup time** | Minutes to hours | Weeks to months |
+| **Bandwidth** | Up to 1.25 Gbps (limited by internet) | 1 Gbps, 10 Gbps, or 100 Gbps |
+| **Latency** | Variable (internet path) | Consistent, low latency |
+| **Cost** | Low (~$0.05/hour + data transfer) | High (port fees + partner fees) |
+| **Encryption** | Yes (IPSec built-in) | No (you must encrypt at app/transport layer) |
+| **Reliability** | Internet availability dependent | SLA-backed dedicated line |
+
+## AWS Site-to-Site VPN
+
+**Site-to-Site VPN** creates an encrypted IPSec tunnel between your on-premises network and your VPC.
+
+**Components:**
+- **Virtual Private Gateway (VGW)**: The AWS-side VPN endpoint, attached to your VPC
+- **Customer Gateway (CGW)**: Represents your on-premises router in AWS (you configure the actual device)
+- **VPN connection**: The IPSec tunnel(s) between VGW and CGW
+
+**Redundancy**: AWS always provisions two tunnels per VPN connection for high availability. Your on-premises router should use both.
+
+**Use cases:**
+- Quick, encrypted connectivity to AWS while waiting for Direct Connect
+- Backup connection for Direct Connect
+- Low-traffic workloads where cost matters more than performance
+
+## AWS Direct Connect
+
+**Direct Connect** provides a dedicated private connection between your data center and AWS. A physical fiber cable runs from your premises to an AWS Direct Connect location (colocation facility).
+
+**How it works:**
+1. You (or a partner) install a cross-connect at a Direct Connect location
+2. AWS provisions a **dedicated connection** (1G/10G/100G ports) or **hosted connection** (through a partner, can be smaller increments)
+3. You configure a **Virtual Interface (VIF)** to access AWS resources
+
+**Virtual Interface types:**
+- **Private VIF**: Access resources in your VPC via VGW or Direct Connect Gateway
+- **Public VIF**: Access AWS public endpoints (S3, DynamoDB public endpoints) without using the internet
+- **Transit VIF**: Connect to Transit Gateway (for multi-VPC access)
+
+**Direct Connect Gateway**: Connect from one Direct Connect to multiple VPCs across different regions (using private VIFs).
+
+<ExamTip>
+**Direct Connect is NOT encrypted by default.** The physical line is private but not encrypted. To encrypt Direct Connect traffic, combine it with an IPSec VPN (Site-to-Site VPN over the Direct Connect connection) for both performance and encryption.
+</ExamTip>
+
+## AWS Transit Gateway
+
+**Transit Gateway** is a network transit hub that connects VPCs and on-premises networks.
+
+**Without Transit Gateway** (N VPCs needing full mesh):
+```
+VPC-A ↔ VPC-B ↔ VPC-C
+VPC-A ↔ VPC-C
+= N*(N-1)/2 peering connections required
+```
+
+**With Transit Gateway**:
+```
+VPC-A ─┐
+VPC-B ─┤──> Transit Gateway ──> On-premises VPN/DX
+VPC-C ─┘
+= N attachments, all route through hub
+```
+
+**Transit Gateway key facts:**
+- Hub-and-spoke model — all routing goes through TGW
+- Supports: VPCs, VPN connections, Direct Connect (via Transit VIF), other TGWs (inter-region peering)
+- **Route tables**: Each TGW has its own route tables; you control which attachments can talk to each other
+- Supports **multicast**
+- Regional service, but can be peered across regions
+
+**Transit Gateway vs. VPC Peering:**
+
+| | VPC Peering | Transit Gateway |
+|---|---|---|
+| Complexity | Simple | More complex setup |
+| Cost | Free | ~$0.05/hour per attachment + data |
+| Scale | Works for a few VPCs | Scales to thousands of VPCs |
+| Transitive routing | No | Yes (through TGW) |
+| Centralized control | No | Yes (TGW route tables) |
+
+## VPN CloudHub
+
+**VPN CloudHub** uses a single Virtual Private Gateway to connect multiple on-premises sites together through AWS:
+
+```
+Site A ──VPN──┐
+Site B ──VPN──┤──> Virtual Private Gateway
+Site C ──VPN──┘
+```
+
+This lets Branch Office A communicate with Branch Office B through AWS — useful when you don't have direct WAN links between branches.
+
+## Summary
+
+- **Site-to-Site VPN**: Fast setup, encrypted IPSec, internet-based, variable latency. Good for backup or low-traffic.
+- **Direct Connect**: Dedicated private fiber, consistent low latency, high bandwidth, weeks to provision, NOT encrypted by default.
+- **Direct Connect + VPN**: Best of both — dedicated performance AND encryption.
+- **Transit Gateway**: Hub for connecting many VPCs and on-premises networks. Replaces complex mesh of peering connections.
+- **VPN CloudHub**: Connect multiple on-premises sites through a single VGW.

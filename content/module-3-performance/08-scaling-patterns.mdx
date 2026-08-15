@@ -1,0 +1,136 @@
+---
+title: "Scaling Patterns for High Performance"
+module: "module-3-performance"
+moduleTitle: "Domain 3: Design High-Performing Architectures"
+slug: "scaling-patterns"
+order: 8
+domain: 3
+taskStatements: ["3.2"]
+estimatedMinutes: 35
+difficulty: "intermediate"
+tags: ["scaling", "horizontal", "vertical", "sqs", "auto-scaling", "read-replicas"]
+services: ["Amazon EC2 Auto Scaling", "Amazon SQS", "Amazon RDS"]
+---
+
+## Vertical Scaling vs. Horizontal Scaling
+
+**Vertical scaling (scale up)**: Increase the size of a single resource:
+- RDS: Change from db.t3.medium → db.r5.2xlarge
+- EC2: Change from m5.large → m5.4xlarge
+- Limits: Eventually you hit the maximum instance size
+- Requires downtime for most resources
+
+**Horizontal scaling (scale out)**: Add more resources of the same type:
+- EC2 Auto Scaling: Add more instances
+- Aurora: Add more read replicas
+- DynamoDB: Auto-scaling, or switch to on-demand
+- Generally preferred — scales linearly with demand, no theoretical limit
+
+## Stateless vs. Stateful Applications
+
+**Stateless applications** can be horizontally scaled trivially — any instance can serve any request:
+- Session data stored in ElastiCache or DynamoDB (not on the instance)
+- No local files (static assets in S3)
+- Any instance can replace any other
+
+**Stateful applications** are harder to scale horizontally:
+- Session data on the instance → user must return to the same instance (sticky sessions)
+- Local file storage → can't move to another instance
+
+**Architecture tip**: Design applications to be stateless from the start. Use sticky sessions only as a temporary measure.
+
+## Application-Level Scaling Patterns
+
+### Database Read Scaling
+
+```
+Write traffic → Primary DB instance
+Read traffic → Read Replicas (pool of read replicas, all getting replicated data)
+
+Application reads: randomly pick a read replica endpoint
+Application writes: always go to primary endpoint
+```
+
+Use **RDS Proxy** to pool and reuse database connections, reducing connection overhead.
+
+### Caching Layer for Read Performance
+
+The cache absorbs 80-95% of read traffic before it reaches the database:
+
+```
+Request → Application → Check ElastiCache (hit: ~1ms)
+                     ↘ Cache miss → Query RDS (~10ms) → Populate cache
+```
+
+**Proper cache TTL** is critical:
+- Too short: Frequent cache misses, high DB load
+- Too long: Stale data shown to users
+
+### SQS Queue for Write Absorption
+
+Instead of writing directly to a database under high load, buffer writes in SQS:
+
+```
+High traffic → SQS Queue (absorbs all writes instantly)
+            → Workers (pull at their own pace, write to DB)
+```
+
+The queue smooths out traffic spikes — your database handles a steady, manageable rate.
+
+### Auto Scaling Based on Queue Depth
+
+```
+SQS Metric: ApproximateNumberOfMessages
+CloudWatch Alarm: if queue depth > 1000
+Auto Scaling Action: Add 2 EC2 workers
+```
+
+As the queue drains, scale back down. This is a cost-efficient, elastic architecture.
+
+## Connection Pooling with RDS Proxy
+
+**RDS Proxy** sits between your application and RDS:
+- Pools and multiplexes database connections
+- Reduces connection overhead when Lambda or containers create many short-lived connections
+- Automatic failover (routes to new primary during Multi-AZ failover)
+- Supports IAM authentication for database access
+
+**Key use case**: Lambda functions. Each Lambda invocation can create a new DB connection — with 1,000 concurrent Lambdas, you'd have 1,000 connections. RDS Proxy pools them and maintains a smaller set of connections to RDS.
+
+## Application Auto Scaling
+
+Beyond EC2 ASG, **Application Auto Scaling** handles other AWS resources:
+- ECS task count
+- DynamoDB table throughput (RCU/WCU)
+- Aurora read replicas
+- SageMaker endpoints
+- Spot fleet capacity
+
+All support: Target tracking, step scaling, scheduled scaling.
+
+## AWS Compute Optimizer
+
+**Compute Optimizer** analyzes your EC2 usage and recommends optimal instance types:
+- Looks at CPU utilization, memory, disk, network metrics
+- Recommends right-sizing (often saving 40%+)
+- Also optimizes EBS volumes and Lambda memory
+
+## Load Shedding and Circuit Breakers
+
+**Load shedding**: When a service is overwhelmed, deliberately reject excess requests (return 503) rather than accepting all requests and causing cascading failures.
+
+**Circuit breaker**: If a downstream service fails repeatedly, stop calling it immediately (for a cooldown period) rather than timing out on every request.
+
+AWS services that implement these:
+- API Gateway: Throttling (requests per second limits per client)
+- ALB: Connection timeout and draining
+- SQS: Acts as a buffer so failures don't cascade
+
+## Summary
+
+- **Scale out > scale up**: Horizontal scaling is more resilient and flexible.
+- **Stateless applications**: Any instance can serve any request. Essential for effective ASG.
+- **Read replicas**: Distribute read load across replicas. Writes still go to primary.
+- **SQS as buffer**: Queue writes under high load; workers process at their own pace.
+- **RDS Proxy**: Connection pooling for Lambda and containers. Reduces DB connection overhead.
+- **Auto Scale on queue depth**: SQS metric → CloudWatch alarm → Auto Scaling.

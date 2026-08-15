@@ -1,0 +1,131 @@
+---
+title: "Tagging, Governance & Cost Accountability"
+module: "module-4-cost"
+moduleTitle: "Domain 4: Design Cost-Optimized Architectures"
+slug: "tagging-governance"
+order: 6
+domain: 4
+taskStatements: ["4.1"]
+estimatedMinutes: 25
+difficulty: "intermediate"
+tags: ["tagging", "governance", "config", "service-catalog", "cost-allocation"]
+services: ["AWS Config", "AWS Service Catalog", "AWS Organizations"]
+---
+
+## Why Governance Matters for Cost
+
+Without governance, teams provision resources without considering cost:
+- Instances left running after a project ends
+- Oversized resources never right-sized
+- No accountability — nobody knows which team owns what
+
+**Effective cost governance** creates accountability and prevents waste.
+
+## Tagging Strategy
+
+**Tags** are the foundation of cost visibility. A good tagging strategy includes:
+
+| Tag key | Example values | Purpose |
+|---|---|---|
+| `Environment` | production, staging, dev | Environment-based cost split |
+| `Team` | payments, identity, platform | Team chargeback |
+| `Project` | checkout-v2, mobile-app | Project cost tracking |
+| `Owner` | alice@company.com | Who to contact |
+| `CostCenter` | CC-12345 | Finance department |
+| `Shutdown` | true/false | Enable automatic shutdown of dev instances |
+
+**AWS Tag Policies** (via Organizations): Enforce tag standardization across all accounts — reject resource creation without required tags.
+
+## Enforcing Tags with Config and SCPs
+
+**AWS Config rule: `required-tags`**: Marks resources without specific tags as non-compliant. Triggers alerts and remediation.
+
+**SCP example — require tags on EC2**:
+```json
+{
+  "Effect": "Deny",
+  "Action": "ec2:RunInstances",
+  "Resource": "arn:aws:ec2:*:*:instance/*",
+  "Condition": {
+    "Null": {
+      "aws:RequestTag/Environment": "true",
+      "aws:RequestTag/Team": "true"
+    }
+  }
+}
+```
+This prevents launching EC2 instances without `Environment` and `Team` tags.
+
+## AWS Service Catalog
+
+**Service Catalog** allows organizations to create and manage approved product portfolios:
+- Define CloudFormation templates as "products"
+- Set up portfolios (curated sets of products)
+- End users (developers) can self-service provision approved products
+- Tags and constraints applied automatically at launch
+
+**Benefits:**
+- Developers get self-service without giving them full AWS access
+- Finance gets predictable, tagged, governed resources
+- Governance teams ensure security/compliance requirements are met
+
+**Example**: A "Compliant EC2 Web Server" product: pre-configured with security groups, IAM role, CloudWatch logging, and required tags. Developers pick the size but can't change other settings.
+
+## AWS Organizations Cost Controls
+
+| Control | Purpose |
+|---|---|
+| **Consolidated billing** | One invoice, volume discounts, RI sharing |
+| **SCPs** | Prevent expensive resource types in non-prod accounts |
+| **Tag Policies** | Standardize tag keys/values across accounts |
+| **AI Services opt-out policies** | Control which accounts can use expensive AI services |
+| **Budget delegation** | Grant budget management to member accounts |
+
+**SCP example — restrict to affordable instance types in dev:**
+```json
+{
+  "Effect": "Deny",
+  "Action": "ec2:RunInstances",
+  "Resource": "arn:aws:ec2:*:*:instance/*",
+  "Condition": {
+    "StringNotLike": {
+      "ec2:InstanceType": ["t3.*", "t2.*"]
+    }
+  }
+}
+```
+Dev accounts can only use t2/t3 instances — prevents someone accidentally launching p4d.24xlarge ($32/hour) for testing.
+
+## Scheduled Shutdowns for Cost Savings
+
+Non-production resources waste money nights and weekends. Automate shutdown:
+
+**Option 1: EC2 Instance Scheduler**
+AWS-provided solution that stops/starts EC2 and RDS instances on a schedule using tags:
+- Tag instance with `Schedule=dev-hours` → automatically stops at 7pm, starts at 8am weekdays
+
+**Option 2: EventBridge + Lambda**
+```
+EventBridge cron rule: Every weeknight at 10pm
+    → Lambda function: Stop all EC2 instances tagged Environment=dev
+EventBridge cron rule: Every weekday at 7am
+    → Lambda function: Start all EC2 instances tagged Environment=dev
+```
+
+**Savings**: If dev runs 9 hours/day (vs. 24): saves (24-9)/24 = 62.5% on dev compute costs.
+
+## AWS Compute Optimizer (Cost Context)
+
+Beyond right-sizing, Compute Optimizer identifies:
+- **Over-provisioned** resources: Using 10% CPU → suggest smaller instance
+- **Under-provisioned** resources: Consistently at 95% CPU → suggest larger instance
+- **Memory utilization** via CloudWatch Agent (requires installing the agent)
+
+## Summary
+
+- **Tags**: Foundation of cost accountability. Use `Environment`, `Team`, `Project`, `Owner`, `CostCenter`.
+- **Tag Policies (Organizations)**: Enforce standardized tags across all accounts.
+- **Service Catalog**: Self-service provisioning with governance constraints and automatic tagging.
+- **SCPs**: Prevent expensive resources in non-prod accounts. Require tags at creation.
+- **Scheduled shutdowns**: 60%+ cost savings on dev/test resources with automated start/stop.
+- **Config rules**: Continuous compliance monitoring for tag requirements.
