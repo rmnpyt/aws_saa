@@ -5,6 +5,7 @@ on:
 
 jobs:
   build-and-push:
+    runs-on: ubuntu-latest
     steps:
      - name: Hello from CI
        run: echo "first seccessful run"
